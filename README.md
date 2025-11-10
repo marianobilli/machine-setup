@@ -7,8 +7,10 @@ Automated development environment setup script for macOS and Ubuntu. This script
 - **Idempotent**: Safe to run multiple times - won't reinstall existing tools
 - **Cross-platform**: Supports both macOS and Ubuntu
 - **Interactive**: Detects your OS and confirms before installation
-- **Comprehensive**: Installs 8+ essential development tools
+- **Comprehensive**: Installs 9+ essential development tools
+- **Beautiful Shell**: Oh My Zsh with Powerlevel10k theme and productivity plugins
 - **Organized**: Clones GitHub repositories to `~/github` for easy management
+- **Safe**: Backs up existing `.zshrc` before making changes
 
 ## Supported Operating Systems
 
@@ -47,22 +49,42 @@ The script will:
 - **Description**: Package manager for macOS
 - **Usage**: `brew install <package>`
 
-### 1. Python 3.12
+### 1. Oh My Zsh + Powerlevel10k
+- **Description**: Enhanced Zsh configuration framework with a beautiful, customizable theme
+- **Features**:
+  - Powerlevel10k theme for a modern, fast prompt (installed but not forced)
+  - Ensures required plugins are present: git, docker, kubectl, aws, kubernetes
+  - **Non-invasive**: Preserves existing Powerlevel10k configuration if already customized
+  - **Additive**: Only adds missing plugins, keeps your existing ones
+  - Automatic .zshrc backup before first configuration
+- **Usage**:
+  - Run `p10k configure` to customize your prompt appearance (if using Powerlevel10k)
+  - Enjoy enhanced autocomplete and syntax highlighting
+- **Location**: `~/.oh-my-zsh`
+- **Plugins** (automatically ensured):
+  - **git**: Git command aliases and information
+  - **docker**: Docker command completion
+  - **kubectl**: Kubernetes kubectl completion and aliases
+  - **aws**: AWS CLI completion
+  - **kubernetes**: Enhanced Kubernetes context/namespace display
+- **Note**: If you already have Powerlevel10k or other plugins configured, this script will only add what's missing without overwriting your setup
+
+### 2. Python 3.12
 - **Description**: Modern Python interpreter
 - **Usage**: `python3.12` or `python3`
 - **Includes**: pip, venv, and development headers
 
-### 2. Node.js & npm
+### 3. Node.js & npm
 - **Description**: JavaScript runtime and package manager
 - **Usage**: `node <file.js>`, `npm install <package>`
 - **Version**: Latest LTS
 
-### 3. Claude Code
+### 4. Claude Code
 - **Description**: Anthropic's AI-powered coding assistant CLI
 - **Usage**: `claude`
 - **Installation**: Via npm global package
 
-### 4. kubectx & kubens
+### 5. kubectx & kubens
 - **Description**: Quick Kubernetes context and namespace switcher
 - **Usage**:
   - `kubectx` - List/switch contexts
@@ -71,7 +93,7 @@ The script will:
   - `kubens <namespace>` - Switch to namespace
 - **Location (Ubuntu)**: `~/github/kubectx`
 
-### 5. kubectl
+### 6. kubectl
 - **Description**: Kubernetes command-line tool for cluster management
 - **Usage**:
   - `kubectl get pods`
@@ -79,7 +101,7 @@ The script will:
   - `kubectl logs <pod>`
 - **Version**: Latest stable (v1.28)
 
-### 6. Granted (assume)
+### 7. Granted (assume)
 - **Description**: AWS IAM credential manager for easy role switching
 - **Usage**: `assume <profile-name>`
 - **Features**:
@@ -87,12 +109,12 @@ The script will:
   - MFA support
   - Shell alias configured automatically
 
-### 7. k9s
+### 8. k9s
 - **Description**: Terminal UI for managing Kubernetes clusters
 - **Usage**: `k9s`
 - **Features**: Interactive cluster management with keyboard shortcuts
 
-### 8. envchain
+### 9. envchain
 - **Description**: Secure environment variable management using system keychain
 - **Usage**:
   - `envchain <namespace> <command>`
@@ -108,7 +130,13 @@ After the script completes:
    source ~/.zshrc
    ```
 
-2. **Verify installations**:
+2. **Configure Powerlevel10k** (first time only):
+   ```bash
+   p10k configure
+   ```
+   This will launch an interactive wizard to customize your prompt appearance.
+
+3. **Verify installations**:
    ```bash
    python3.12 --version
    node --version
@@ -120,10 +148,16 @@ After the script completes:
    envchain --help
    ```
 
-3. **Configure tools** as needed:
+4. **Configure tools** as needed:
    - Set up AWS profiles for Granted
    - Configure kubectl contexts
    - Set up envchain namespaces
+
+5. **Note about .zshrc and Oh My Zsh**:
+   - Your original `.zshrc` is backed up to `~/.zshrc.backup-before-setup` (first run only)
+   - The script ensures these plugins are present: git, docker, kubectl, aws, kubernetes
+   - Existing plugins and configurations are preserved
+   - If Powerlevel10k is already installed and configured, your customization remains unchanged
 
 ## Script Behavior
 
