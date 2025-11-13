@@ -441,6 +441,92 @@ install_nmap() {
     log_info "nmap installed successfully"
 }
 
+# Install wslu (for Ubuntu WSL)
+install_wslu() {
+    # Only install on Ubuntu (typically for WSL)
+    if [[ "$OS" != "ubuntu" ]]; then
+        return 0
+    fi
+
+    # Check if wslu is already installed
+    if command -v wslview &> /dev/null; then
+        log_info "wslu is already installed"
+        return 0
+    fi
+
+    log_info "Installing wslu (for WSL browser integration)..."
+
+    sudo apt update
+    sudo apt install -y wslu
+
+    log_info "wslu installed successfully"
+}
+
+# Install and configure gnome-keyring
+install_gnome_keyring() {
+    # Only install on Ubuntu
+    if [[ "$OS" != "ubuntu" ]]; then
+        return 0
+    fi
+
+    # Check if gnome-keyring is already installed
+    if dpkg -l | grep -q gnome-keyring; then
+        log_info "gnome-keyring is already installed"
+    else
+        log_info "Installing gnome-keyring..."
+        sudo apt update
+        sudo apt install -y gnome-keyring libsecret-1-0 libsecret-1-dev
+        log_info "gnome-keyring installed successfully"
+    fi
+
+    # Configure gnome-keyring to start automatically in .zshrc
+    if [ -f ~/.zshrc ]; then
+        if ! grep -q "gnome-keyring-daemon" ~/.zshrc; then
+            log_info "Configuring gnome-keyring daemon to start automatically..."
+            cat >> ~/.zshrc << 'GNOME_EOF'
+
+# Start gnome-keyring daemon if not already running
+if [ -z "$GNOME_KEYRING_CONTROL" ]; then
+    eval $(gnome-keyring-daemon --start --components=secrets,ssh 2>/dev/null)
+    export GNOME_KEYRING_CONTROL
+    export SSH_AUTH_SOCK
+fi
+GNOME_EOF
+            log_info "gnome-keyring daemon configuration added to ~/.zshrc"
+        else
+            log_info "gnome-keyring daemon is already configured in ~/.zshrc"
+        fi
+    fi
+
+    # Configure git to use gnome-keyring as credential helper
+    if command -v git &> /dev/null; then
+        CURRENT_HELPER=$(git config --global credential.helper 2>/dev/null || echo "")
+
+        if [[ "$CURRENT_HELPER" != *"libsecret"* ]]; then
+            log_info "Configuring git to use gnome-keyring for credential storage..."
+
+            # Build git-credential-libsecret if not already built
+            if [ ! -f /usr/share/doc/git/contrib/credential/libsecret/git-credential-libsecret ]; then
+                log_info "Building git-credential-libsecret..."
+                sudo apt install -y libglib2.0-dev
+                cd /usr/share/doc/git/contrib/credential/libsecret
+                sudo make
+                cd ~
+            fi
+
+            git config --global credential.helper /usr/share/doc/git/contrib/credential/libsecret/git-credential-libsecret
+            log_info "git credential helper configured to use gnome-keyring"
+        else
+            log_info "git is already configured to use gnome-keyring"
+        fi
+    fi
+
+    # Configure for granted/assume (envchain already uses libsecret-1-dev)
+    log_info "gnome-keyring is configured for granted/assume (via libsecret)"
+
+    log_info "gnome-keyring setup complete"
+}
+
 # Main installation function
 main() {
     echo "======================================"
@@ -506,6 +592,12 @@ main() {
     echo ""
 
     install_nmap
+    echo ""
+
+    install_wslu
+    echo ""
+
+    install_gnome_keyring
     echo ""
 
     echo "======================================"
@@ -588,6 +680,21 @@ main() {
     echo "  Network exploration and security auditing tool"
     echo "  Usage: nmap <target>, nmap -p 1-1000 <target> (port scan)"
     echo ""
+
+    if [[ "$OS" == "ubuntu" ]]; then
+        echo "${GREEN}wslu${NC}"
+        echo "  Utilities for WSL (Windows Subsystem for Linux)"
+        echo "  Enables browser launching from WSL terminal"
+        echo "  Usage: wslview <url> (open URL in Windows browser)"
+        echo ""
+
+        echo "${GREEN}gnome-keyring${NC}"
+        echo "  Secure credential and secret storage for Linux"
+        echo "  Configured for git, granted/assume, and envchain"
+        echo "  Auto-starts with your shell session"
+        echo "  Usage: Automatic - stores git credentials and AWS profiles securely"
+        echo ""
+    fi
 
     echo "======================================"
     echo "For more information on any tool, run:"
