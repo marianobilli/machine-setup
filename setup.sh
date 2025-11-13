@@ -400,6 +400,47 @@ install_envchain() {
     log_info "envchain installed successfully"
 }
 
+# Install lsof
+install_lsof() {
+    # Check if lsof is already installed
+    if command -v lsof &> /dev/null; then
+        log_info "lsof is already installed"
+        return 0
+    fi
+
+    log_info "Installing lsof..."
+
+    if [[ "$OS" == "macos" ]]; then
+        # lsof comes pre-installed on macOS
+        log_info "lsof is typically pre-installed on macOS"
+    elif [[ "$OS" == "ubuntu" ]]; then
+        sudo apt update
+        sudo apt install -y lsof
+    fi
+
+    log_info "lsof installed successfully"
+}
+
+# Install nmap
+install_nmap() {
+    # Check if nmap is already installed
+    if command -v nmap &> /dev/null; then
+        log_info "nmap is already installed (version: $(nmap --version | head -n 1))"
+        return 0
+    fi
+
+    log_info "Installing nmap..."
+
+    if [[ "$OS" == "macos" ]]; then
+        brew install nmap
+    elif [[ "$OS" == "ubuntu" ]]; then
+        sudo apt update
+        sudo apt install -y nmap
+    fi
+
+    log_info "nmap installed successfully"
+}
+
 # Main installation function
 main() {
     echo "======================================"
@@ -459,6 +500,12 @@ main() {
     echo ""
 
     install_envchain
+    echo ""
+
+    install_lsof
+    echo ""
+
+    install_nmap
     echo ""
 
     echo "======================================"
@@ -530,6 +577,16 @@ main() {
     if [[ "$OS" == "ubuntu" ]]; then
         echo "  Location: ~/github/envchain"
     fi
+    echo ""
+
+    echo "${GREEN}lsof${NC}"
+    echo "  List open files and network connections"
+    echo "  Usage: lsof -i :8080 (check port), lsof -u username (by user)"
+    echo ""
+
+    echo "${GREEN}nmap${NC}"
+    echo "  Network exploration and security auditing tool"
+    echo "  Usage: nmap <target>, nmap -p 1-1000 <target> (port scan)"
     echo ""
 
     echo "======================================"
