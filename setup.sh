@@ -112,6 +112,24 @@ install_oh_my_zsh() {
         fi
     fi
 
+    # Install zsh-autosuggestions plugin
+    if [ -d ~/.oh-my-zsh/custom/plugins/zsh-autosuggestions ]; then
+        log_info "zsh-autosuggestions is already installed (not updating to preserve your configuration)"
+    else
+        log_info "Installing zsh-autosuggestions plugin..."
+        git clone https://github.com/zsh-users/zsh-autosuggestions ~/.oh-my-zsh/custom/plugins/zsh-autosuggestions
+        log_info "zsh-autosuggestions plugin installed successfully"
+    fi
+
+    # Install zsh-syntax-highlighting plugin
+    if [ -d ~/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting ]; then
+        log_info "zsh-syntax-highlighting is already installed (not updating to preserve your configuration)"
+    else
+        log_info "Installing zsh-syntax-highlighting plugin..."
+        git clone https://github.com/zsh-users/zsh-syntax-highlighting.git ~/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting
+        log_info "zsh-syntax-highlighting plugin installed successfully"
+    fi
+
     # Backup existing .zshrc if it exists and wasn't backed up yet
     if [ -f ~/.zshrc ] && [ ! -f ~/.zshrc.backup-before-setup ]; then
         cp ~/.zshrc ~/.zshrc.backup-before-setup
@@ -119,7 +137,7 @@ install_oh_my_zsh() {
     fi
 
     # Ensure required plugins are present (without removing user's existing plugins)
-    REQUIRED_PLUGINS=("git" "docker" "kubectl" "aws" "kubernetes")
+    REQUIRED_PLUGINS=("git" "docker" "kubectl" "aws" "kubernetes" "zsh-autosuggestions" "zsh-syntax-highlighting" "npm" "python" "command-not-found" "colored-man-pages" "z" "history-substring-search" "sudo" "extract")
 
     if [ -f ~/.zshrc ]; then
         if grep -q "^plugins=" ~/.zshrc; then
@@ -618,11 +636,22 @@ main() {
         echo ""
     fi
 
-    echo "${GREEN}Oh My Zsh + Powerlevel10k${NC}"
+    echo "${GREEN}Oh My Zsh + Powerlevel10k + Enhanced Plugins${NC}"
     echo "  Enhanced Zsh configuration framework with beautiful theme"
-    echo "  Plugins enabled: git, docker, kubectl, aws, kubernetes"
-    echo "  Usage: Run 'p10k configure' to customize your prompt"
+    echo "  Theme: Powerlevel10k (run 'p10k configure' to customize)"
     echo "  Location: ~/.oh-my-zsh"
+    echo ""
+    echo "  Plugins enabled:"
+    echo "    • git, docker, kubectl, aws, kubernetes - Tool-specific helpers"
+    echo "    • zsh-autosuggestions - Fish-like command suggestions from history"
+    echo "    • zsh-syntax-highlighting - Real-time command syntax highlighting"
+    echo "    • npm, python - Language-specific aliases and completions"
+    echo "    • command-not-found - Suggests packages when command is missing"
+    echo "    • colored-man-pages - Colorized man pages"
+    echo "    • z - Smart directory jumping (tracks your most used dirs)"
+    echo "    • history-substring-search - Enhanced history search (↑/↓ arrows)"
+    echo "    • sudo - Press ESC twice to add 'sudo' to previous command"
+    echo "    • extract - Universal archive extraction (supports zip, tar, gz, etc.)"
     echo ""
 
     echo "${GREEN}Python 3.12${NC}"
