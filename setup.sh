@@ -112,6 +112,24 @@ install_oh_my_zsh() {
         fi
     fi
 
+    # Install zsh-autosuggestions plugin
+    if [ -d ~/.oh-my-zsh/custom/plugins/zsh-autosuggestions ]; then
+        log_info "zsh-autosuggestions is already installed (not updating to preserve your configuration)"
+    else
+        log_info "Installing zsh-autosuggestions plugin..."
+        git clone https://github.com/zsh-users/zsh-autosuggestions ~/.oh-my-zsh/custom/plugins/zsh-autosuggestions
+        log_info "zsh-autosuggestions plugin installed successfully"
+    fi
+
+    # Install zsh-syntax-highlighting plugin
+    if [ -d ~/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting ]; then
+        log_info "zsh-syntax-highlighting is already installed (not updating to preserve your configuration)"
+    else
+        log_info "Installing zsh-syntax-highlighting plugin..."
+        git clone https://github.com/zsh-users/zsh-syntax-highlighting.git ~/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting
+        log_info "zsh-syntax-highlighting plugin installed successfully"
+    fi
+
     # Backup existing .zshrc if it exists and wasn't backed up yet
     if [ -f ~/.zshrc ] && [ ! -f ~/.zshrc.backup-before-setup ]; then
         cp ~/.zshrc ~/.zshrc.backup-before-setup
@@ -119,7 +137,7 @@ install_oh_my_zsh() {
     fi
 
     # Ensure required plugins are present (without removing user's existing plugins)
-    REQUIRED_PLUGINS=("git" "docker" "kubectl" "aws" "kubernetes")
+    REQUIRED_PLUGINS=("git" "docker" "kubectl" "aws" "kubernetes" "zsh-autosuggestions" "zsh-syntax-highlighting" "npm" "python" "command-not-found" "colored-man-pages" "z" "history-substring-search" "sudo" "extract")
 
     if [ -f ~/.zshrc ]; then
         if grep -q "^plugins=" ~/.zshrc; then
@@ -400,6 +418,133 @@ install_envchain() {
     log_info "envchain installed successfully"
 }
 
+# Install lsof
+install_lsof() {
+    # Check if lsof is already installed
+    if command -v lsof &> /dev/null; then
+        log_info "lsof is already installed"
+        return 0
+    fi
+
+    log_info "Installing lsof..."
+
+    if [[ "$OS" == "macos" ]]; then
+        # lsof comes pre-installed on macOS
+        log_info "lsof is typically pre-installed on macOS"
+    elif [[ "$OS" == "ubuntu" ]]; then
+        sudo apt update
+        sudo apt install -y lsof
+    fi
+
+    log_info "lsof installed successfully"
+}
+
+# Install nmap
+install_nmap() {
+    # Check if nmap is already installed
+    if command -v nmap &> /dev/null; then
+        log_info "nmap is already installed (version: $(nmap --version | head -n 1))"
+        return 0
+    fi
+
+    log_info "Installing nmap..."
+
+    if [[ "$OS" == "macos" ]]; then
+        brew install nmap
+    elif [[ "$OS" == "ubuntu" ]]; then
+        sudo apt update
+        sudo apt install -y nmap
+    fi
+
+    log_info "nmap installed successfully"
+}
+
+# Install wslu (for Ubuntu WSL)
+install_wslu() {
+    # Only install on Ubuntu (typically for WSL)
+    if [[ "$OS" != "ubuntu" ]]; then
+        return 0
+    fi
+
+    # Check if wslu is already installed
+    if command -v wslview &> /dev/null; then
+        log_info "wslu is already installed"
+        return 0
+    fi
+
+    log_info "Installing wslu (for WSL browser integration)..."
+
+    sudo apt update
+    sudo apt install -y wslu
+
+    log_info "wslu installed successfully"
+}
+
+# Install and configure gnome-keyring
+install_gnome_keyring() {
+    # Only install on Ubuntu
+    if [[ "$OS" != "ubuntu" ]]; then
+        return 0
+    fi
+
+    # Check if gnome-keyring is already installed
+    if dpkg -l | grep -q gnome-keyring; then
+        log_info "gnome-keyring is already installed"
+    else
+        log_info "Installing gnome-keyring..."
+        sudo apt update
+        sudo apt install -y gnome-keyring libsecret-1-0 libsecret-1-dev
+        log_info "gnome-keyring installed successfully"
+    fi
+
+    # Configure gnome-keyring to start automatically in .zshrc
+    if [ -f ~/.zshrc ]; then
+        if ! grep -q "gnome-keyring-daemon" ~/.zshrc; then
+            log_info "Configuring gnome-keyring daemon to start automatically..."
+            cat >> ~/.zshrc << 'GNOME_EOF'
+
+# Start gnome-keyring daemon if not already running
+if [ -z "$GNOME_KEYRING_CONTROL" ]; then
+    eval $(gnome-keyring-daemon --start --components=secrets,ssh 2>/dev/null)
+    export GNOME_KEYRING_CONTROL
+    export SSH_AUTH_SOCK
+fi
+GNOME_EOF
+            log_info "gnome-keyring daemon configuration added to ~/.zshrc"
+        else
+            log_info "gnome-keyring daemon is already configured in ~/.zshrc"
+        fi
+    fi
+
+    # Configure git to use gnome-keyring as credential helper
+    if command -v git &> /dev/null; then
+        CURRENT_HELPER=$(git config --global credential.helper 2>/dev/null || echo "")
+
+        if [[ "$CURRENT_HELPER" != *"libsecret"* ]]; then
+            log_info "Configuring git to use gnome-keyring for credential storage..."
+
+            # Build git-credential-libsecret if not already built
+            if [ ! -f /usr/share/doc/git/contrib/credential/libsecret/git-credential-libsecret ]; then
+                log_info "Building git-credential-libsecret..."
+                sudo apt install -y libglib2.0-dev
+                cd /usr/share/doc/git/contrib/credential/libsecret
+                sudo make
+                cd ~
+            fi
+
+            git config --global credential.helper /usr/share/doc/git/contrib/credential/libsecret/git-credential-libsecret
+            log_info "git credential helper configured to use gnome-keyring"
+        else
+            log_info "git is already configured to use gnome-keyring"
+        fi
+    fi
+
+    # Configure for granted/assume (envchain already uses libsecret-1-dev)
+    log_info "gnome-keyring is configured for granted/assume (via libsecret)"
+
+    log_info "gnome-keyring setup complete"
+}
+
 # Main installation function
 main() {
     echo "======================================"
@@ -461,6 +606,18 @@ main() {
     install_envchain
     echo ""
 
+    install_lsof
+    echo ""
+
+    install_nmap
+    echo ""
+
+    install_wslu
+    echo ""
+
+    install_gnome_keyring
+    echo ""
+
     echo "======================================"
     log_info "Setup Complete!"
     echo "======================================"
@@ -479,11 +636,22 @@ main() {
         echo ""
     fi
 
-    echo "${GREEN}Oh My Zsh + Powerlevel10k${NC}"
+    echo "${GREEN}Oh My Zsh + Powerlevel10k + Enhanced Plugins${NC}"
     echo "  Enhanced Zsh configuration framework with beautiful theme"
-    echo "  Plugins enabled: git, docker, kubectl, aws, kubernetes"
-    echo "  Usage: Run 'p10k configure' to customize your prompt"
+    echo "  Theme: Powerlevel10k (run 'p10k configure' to customize)"
     echo "  Location: ~/.oh-my-zsh"
+    echo ""
+    echo "  Plugins enabled:"
+    echo "    • git, docker, kubectl, aws, kubernetes - Tool-specific helpers"
+    echo "    • zsh-autosuggestions - Fish-like command suggestions from history"
+    echo "    • zsh-syntax-highlighting - Real-time command syntax highlighting"
+    echo "    • npm, python - Language-specific aliases and completions"
+    echo "    • command-not-found - Suggests packages when command is missing"
+    echo "    • colored-man-pages - Colorized man pages"
+    echo "    • z - Smart directory jumping (tracks your most used dirs)"
+    echo "    • history-substring-search - Enhanced history search (↑/↓ arrows)"
+    echo "    • sudo - Press ESC twice to add 'sudo' to previous command"
+    echo "    • extract - Universal archive extraction (supports zip, tar, gz, etc.)"
     echo ""
 
     echo "${GREEN}Python 3.12${NC}"
@@ -531,6 +699,31 @@ main() {
         echo "  Location: ~/github/envchain"
     fi
     echo ""
+
+    echo "${GREEN}lsof${NC}"
+    echo "  List open files and network connections"
+    echo "  Usage: lsof -i :8080 (check port), lsof -u username (by user)"
+    echo ""
+
+    echo "${GREEN}nmap${NC}"
+    echo "  Network exploration and security auditing tool"
+    echo "  Usage: nmap <target>, nmap -p 1-1000 <target> (port scan)"
+    echo ""
+
+    if [[ "$OS" == "ubuntu" ]]; then
+        echo "${GREEN}wslu${NC}"
+        echo "  Utilities for WSL (Windows Subsystem for Linux)"
+        echo "  Enables browser launching from WSL terminal"
+        echo "  Usage: wslview <url> (open URL in Windows browser)"
+        echo ""
+
+        echo "${GREEN}gnome-keyring${NC}"
+        echo "  Secure credential and secret storage for Linux"
+        echo "  Configured for git, granted/assume, and envchain"
+        echo "  Auto-starts with your shell session"
+        echo "  Usage: Automatic - stores git credentials and AWS profiles securely"
+        echo ""
+    fi
 
     echo "======================================"
     echo "For more information on any tool, run:"
