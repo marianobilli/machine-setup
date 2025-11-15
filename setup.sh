@@ -86,406 +86,119 @@ parse_arguments() {
 
 # Install Homebrew (macOS only)
 install_brew() {
-    if command_exists brew; then
-        log_info "Homebrew is already installed"
-        return 0
-    fi
-
-    log_info "Installing Homebrew..."
-
-    if [ "$DRY_RUN" = true ]; then
-        log_info "[DRY RUN] Would install Homebrew"
-        return 0
-    fi
-
-    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-
-    # Add Homebrew to PATH for Apple Silicon Macs
-    if [[ $(uname -m) == "arm64" ]]; then
-        echo 'eval "$(/opt/homebrew/bin/brew shellenv)"' >> ~/.zshrc
-        eval "$(/opt/homebrew/bin/brew shellenv)"
-    fi
-
-    log_info "Homebrew installed successfully"
+    # shellcheck source=installers/macos/homebrew.sh
+    source "${SCRIPT_DIR}/installers/macos/homebrew.sh"
 }
 
 # Install Oh My Zsh with Powerlevel10k
 install_oh_my_zsh() {
-    # Check if Oh My Zsh is already installed
-    if [ -d ~/.oh-my-zsh ]; then
-        log_info "Oh My Zsh is already installed"
-    else
-        log_info "Installing Oh My Zsh..."
-
-        # Install Oh My Zsh (unattended)
-        sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
-
-        log_info "Oh My Zsh installed successfully"
-    fi
-
-    # Install Powerlevel10k theme (but don't force it if user has different theme)
-    if [ -d ~/.oh-my-zsh/custom/themes/powerlevel10k ]; then
-        log_info "Powerlevel10k theme is already installed (not updating to preserve your configuration)"
-    else
-        log_info "Installing Powerlevel10k theme..."
-        git clone --depth=1 https://github.com/romkatv/powerlevel10k.git ~/.oh-my-zsh/custom/themes/powerlevel10k
-        log_info "Powerlevel10k theme installed successfully"
-
-        # Only set theme if this is a fresh installation and no theme is set
-        if [ -f ~/.zshrc ]; then
-            if ! grep -q "^ZSH_THEME=" ~/.zshrc; then
-                echo 'ZSH_THEME="powerlevel10k/powerlevel10k"' >> ~/.zshrc
-                log_info "Set Powerlevel10k as default theme"
-            else
-                log_info "Existing theme detected - not changing it. To use Powerlevel10k, set: ZSH_THEME=\"powerlevel10k/powerlevel10k\""
-            fi
-        fi
-    fi
-
-    # Install zsh-autosuggestions plugin
-    if [ -d ~/.oh-my-zsh/custom/plugins/zsh-autosuggestions ]; then
-        log_info "zsh-autosuggestions is already installed (not updating to preserve your configuration)"
-    else
-        log_info "Installing zsh-autosuggestions plugin..."
-        git clone https://github.com/zsh-users/zsh-autosuggestions ~/.oh-my-zsh/custom/plugins/zsh-autosuggestions
-        log_info "zsh-autosuggestions plugin installed successfully"
-    fi
-
-    # Install zsh-syntax-highlighting plugin
-    if [ -d ~/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting ]; then
-        log_info "zsh-syntax-highlighting is already installed (not updating to preserve your configuration)"
-    else
-        log_info "Installing zsh-syntax-highlighting plugin..."
-        git clone https://github.com/zsh-users/zsh-syntax-highlighting.git ~/.oh-my-zsh/custom/plugins/zsh-syntax-highlighting
-        log_info "zsh-syntax-highlighting plugin installed successfully"
-    fi
-
-    # Backup existing .zshrc if it exists and wasn't backed up yet
-    if [ -f ~/.zshrc ] && [ ! -f ~/.zshrc.backup-before-setup ]; then
-        cp ~/.zshrc ~/.zshrc.backup-before-setup
-        log_info "Backed up existing .zshrc to ~/.zshrc.backup-before-setup"
-    fi
-
-    # Ensure required plugins are present (without removing user's existing plugins)
-    REQUIRED_PLUGINS=("git" "docker" "kubectl" "aws" "kubernetes" "zsh-autosuggestions" "zsh-syntax-highlighting" "npm" "python" "command-not-found" "colored-man-pages" "z" "history-substring-search" "sudo" "extract")
-
-    if [ -f ~/.zshrc ]; then
-        if grep -q "^plugins=" ~/.zshrc; then
-            # Extract current plugins
-            CURRENT_PLUGINS=$(grep "^plugins=" ~/.zshrc | sed 's/plugins=(\(.*\))/\1/')
-
-            # Check which required plugins are missing
-            MISSING_PLUGINS=()
-            for plugin in "${REQUIRED_PLUGINS[@]}"; do
-                if ! echo "$CURRENT_PLUGINS" | grep -qw "$plugin"; then
-                    MISSING_PLUGINS+=("$plugin")
-                fi
-            done
-
-            # Add missing plugins to the existing line
-            if [ ${#MISSING_PLUGINS[@]} -gt 0 ]; then
-                log_info "Adding missing plugins: ${MISSING_PLUGINS[*]}"
-
-                # Build new plugin list (existing + missing)
-                NEW_PLUGINS="$CURRENT_PLUGINS ${MISSING_PLUGINS[*]}"
-                NEW_PLUGINS=$(echo "$NEW_PLUGINS" | xargs)  # trim whitespace
-
-                # Update the plugins line
-                sed -i.tmp "s|^plugins=.*|plugins=($NEW_PLUGINS)|" ~/.zshrc
-                rm -f ~/.zshrc.tmp
-
-                log_info "Plugins updated successfully"
-            else
-                log_info "All required plugins already present"
-            fi
-        else
-            # No plugins line exists, add it
-            echo "plugins=(${REQUIRED_PLUGINS[*]})" >> ~/.zshrc
-            log_info "Added plugins: ${REQUIRED_PLUGINS[*]}"
-        fi
-    fi
-
-    log_info "Oh My Zsh setup complete"
-    if [ -d ~/.oh-my-zsh/custom/themes/powerlevel10k ]; then
-        log_warning "Powerlevel10k is available. Run 'p10k configure' to customize (if not already done)"
-    fi
+    # shellcheck source=installers/common/oh-my-zsh.sh
+    source "${SCRIPT_DIR}/installers/common/oh-my-zsh.sh"
 }
 
 # Install Python 3.12
 install_python() {
-    # Check if Python 3.12 is already installed
-    if command -v python3.12 &> /dev/null; then
-        log_info "Python 3.12 is already installed"
-        return 0
-    fi
-
-    log_info "Installing Python 3.12..."
-
     if [[ "$OS" == "macos" ]]; then
-        brew install python@3.12
-        # Link python3.12 to python3
-        brew link python@3.12
+        # shellcheck source=installers/macos/python.sh
+        source "${SCRIPT_DIR}/installers/macos/python.sh"
     elif [[ "$OS" == "ubuntu" ]]; then
-        sudo apt update
-        sudo apt install -y software-properties-common
-        sudo add-apt-repository -y ppa:deadsnakes/ppa
-        sudo apt update
-        sudo apt install -y python3.12 python3.12-venv python3.12-dev
-        # Set python3.12 as alternative
-        sudo update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.12 1
+        # shellcheck source=installers/ubuntu/python.sh
+        source "${SCRIPT_DIR}/installers/ubuntu/python.sh"
     fi
-
-    log_info "Python 3.12 installed successfully"
 }
 
 # Install Node.js and npm
 install_nodejs() {
-    # Check if Node.js is already installed
-    if command -v node &> /dev/null; then
-        log_info "Node.js is already installed (version: $(node --version))"
-        return 0
-    fi
-
-    log_info "Installing Node.js and npm..."
-
     if [[ "$OS" == "macos" ]]; then
-        brew install node
+        # shellcheck source=installers/macos/nodejs.sh
+        source "${SCRIPT_DIR}/installers/macos/nodejs.sh"
     elif [[ "$OS" == "ubuntu" ]]; then
-        # Install using NodeSource repository for latest LTS
-        curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -
-        sudo apt install -y nodejs
+        # shellcheck source=installers/ubuntu/nodejs.sh
+        source "${SCRIPT_DIR}/installers/ubuntu/nodejs.sh"
     fi
-
-    log_info "Node.js and npm installed successfully"
 }
 
 # Install Claude Code
 install_claude_code() {
-    log_info "Installing Claude Code..."
-
-    if command -v claude &> /dev/null; then
-        log_info "Claude Code is already installed"
-        return 0
-    fi
-
-    # Install via npm globally
-    sudo npm install -g @anthropic-ai/claude-code
-
-    log_info "Claude Code installed successfully"
+    # shellcheck source=installers/common/claude-code.sh
+    source "${SCRIPT_DIR}/installers/common/claude-code.sh"
 }
 
 # Install kubectx
 install_kubectx() {
-    # Check if kubectx is already installed
-    if command -v kubectx &> /dev/null; then
-        log_info "kubectx is already installed"
-        return 0
-    fi
-
-    log_info "Installing kubectx..."
-
     if [[ "$OS" == "macos" ]]; then
-        brew install kubectx
+        # shellcheck source=installers/macos/kubectx.sh
+        source "${SCRIPT_DIR}/installers/macos/kubectx.sh"
     elif [[ "$OS" == "ubuntu" ]]; then
-        # Create ~/github directory if it doesn't exist
-        mkdir -p ~/github
-
-        # Check if already cloned, if so pull latest, otherwise clone
-        if [ -d ~/github/kubectx ]; then
-            log_info "Updating existing kubectx installation..."
-            cd ~/github/kubectx || return 1
-            git pull
-            cd ~ || return 1
-        else
-            # Clone from GitHub
-            git clone https://github.com/ahmetb/kubectx ~/github/kubectx
-        fi
-
-        sudo ln -sf ~/github/kubectx/kubectx /usr/local/bin/kubectx
-        sudo ln -sf ~/github/kubectx/kubens /usr/local/bin/kubens
-
-        # Install completion for zsh
-        mkdir -p ~/.oh-my-zsh/completions
-        chmod -R 755 ~/.oh-my-zsh/completions
-        ln -sf ~/github/kubectx/completion/_kubectx.zsh ~/.oh-my-zsh/completions/_kubectx.zsh
-        ln -sf ~/github/kubectx/completion/_kubens.zsh ~/.oh-my-zsh/completions/_kubens.zsh
+        # shellcheck source=installers/ubuntu/kubectx.sh
+        source "${SCRIPT_DIR}/installers/ubuntu/kubectx.sh"
     fi
-
-    log_info "kubectx installed successfully"
 }
 
 # Install AWS kubectl
 install_kubectl() {
-    # Check if kubectl is already installed
-    if command -v kubectl &> /dev/null; then
-        log_info "kubectl is already installed (version: $(kubectl version --client --short 2>/dev/null || echo 'installed'))"
-        return 0
-    fi
-
-    log_info "Installing kubectl for AWS..."
-
     if [[ "$OS" == "macos" ]]; then
-        brew install kubectl
+        # shellcheck source=installers/macos/kubectl.sh
+        source "${SCRIPT_DIR}/installers/macos/kubectl.sh"
     elif [[ "$OS" == "ubuntu" ]]; then
-        # Install kubectl from official Kubernetes repository
-        sudo apt update
-        sudo apt install -y apt-transport-https ca-certificates curl
-
-        # Create keyrings directory if it doesn't exist
-        sudo mkdir -p /etc/apt/keyrings
-
-        # Only add key if not already present
-        if [ ! -f /etc/apt/keyrings/kubernetes-apt-keyring.gpg ]; then
-            curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.28/deb/Release.key | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
-        fi
-
-        # Only add repository if not already present
-        if [ ! -f /etc/apt/sources.list.d/kubernetes.list ]; then
-            echo 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.28/deb/ /' | sudo tee /etc/apt/sources.list.d/kubernetes.list
-        fi
-
-        sudo apt update
-        sudo apt install -y kubectl
+        # shellcheck source=installers/ubuntu/kubectl.sh
+        source "${SCRIPT_DIR}/installers/ubuntu/kubectl.sh"
     fi
-
-    log_info "kubectl installed successfully"
 }
 
 # Install Granted (assume)
 install_granted() {
-    # Check if granted is already installed
-    if command -v granted &> /dev/null; then
-        log_info "Granted is already installed"
-
-        # Still check and add alias if missing
-        if ! grep -q "alias assume=" ~/.zshrc 2>/dev/null; then
-            echo 'alias assume="source assume"' >> ~/.zshrc
-        fi
-
-        return 0
-    fi
-
-    log_info "Installing Granted (assume)..."
-
     if [[ "$OS" == "macos" ]]; then
-        brew tap common-fate/granted
-        brew install granted
+        # shellcheck source=installers/macos/granted.sh
+        source "${SCRIPT_DIR}/installers/macos/granted.sh"
     elif [[ "$OS" == "ubuntu" ]]; then
-        # Install from GitHub releases
-        curl -OL https://releases.commonfate.io/granted/v0.20.5/granted_0.20.5_linux_x86_64.tar.gz
-        sudo tar -zxvf granted_0.20.5_linux_x86_64.tar.gz -C /usr/local/bin/
-        rm granted_0.20.5_linux_x86_64.tar.gz
+        # shellcheck source=installers/ubuntu/granted.sh
+        source "${SCRIPT_DIR}/installers/ubuntu/granted.sh"
     fi
-
-    # Add assume alias to zshrc if not already present
-    if ! grep -q "alias assume=" ~/.zshrc 2>/dev/null; then
-        echo 'alias assume="source assume"' >> ~/.zshrc
-    fi
-
-    log_info "Granted installed successfully"
-    log_warning "Please restart your shell or run 'source ~/.zshrc' to use the assume alias"
 }
 
 # Install k9s
 install_k9s() {
-    # Check if k9s is already installed
-    if command -v k9s &> /dev/null; then
-        log_info "k9s is already installed (version: $(k9s version --short 2>/dev/null || echo 'installed'))"
-        return 0
-    fi
-
-    log_info "Installing k9s..."
-
     if [[ "$OS" == "macos" ]]; then
-        brew install k9s
+        # shellcheck source=installers/macos/k9s.sh
+        source "${SCRIPT_DIR}/installers/macos/k9s.sh"
     elif [[ "$OS" == "ubuntu" ]]; then
-        # Install from GitHub releases (latest version)
-        curl -OL "https://github.com/derailed/k9s/releases/latest/download/k9s_Linux_amd64.tar.gz"
-        sudo tar -zxvf k9s_Linux_amd64.tar.gz -C /usr/local/bin/ k9s
-        rm k9s_Linux_amd64.tar.gz
+        # shellcheck source=installers/ubuntu/k9s.sh
+        source "${SCRIPT_DIR}/installers/ubuntu/k9s.sh"
     fi
-
-    log_info "k9s installed successfully"
 }
 
 # Install envchain
 install_envchain() {
-    # Check if envchain is already installed
-    if command -v envchain &> /dev/null; then
-        log_info "envchain is already installed"
-        return 0
-    fi
-
-    log_info "Installing envchain..."
-
     if [[ "$OS" == "macos" ]]; then
-        brew install envchain
+        # shellcheck source=installers/macos/envchain.sh
+        source "${SCRIPT_DIR}/installers/macos/envchain.sh"
     elif [[ "$OS" == "ubuntu" ]]; then
-        # Build from source
-        sudo apt install -y build-essential libsecret-1-dev libreadline-dev
-
-        # Create ~/github directory if it doesn't exist
-        mkdir -p ~/github
-
-        # Clone or update envchain repository
-        if [ -d ~/github/envchain ]; then
-            log_info "Updating existing envchain repository..."
-            cd ~/github/envchain || return 1
-            git pull
-        else
-            log_info "Cloning envchain repository..."
-            git clone https://github.com/sorah/envchain.git ~/github/envchain
-            cd ~/github/envchain || return 1
-        fi
-
-        # Build and install
-        make
-        sudo make install
-        cd ~ || return 1
+        # shellcheck source=installers/ubuntu/envchain.sh
+        source "${SCRIPT_DIR}/installers/ubuntu/envchain.sh"
     fi
-
-    log_info "envchain installed successfully"
 }
 
 # Install lsof
 install_lsof() {
-    # Check if lsof is already installed
-    if command -v lsof &> /dev/null; then
-        log_info "lsof is already installed"
-        return 0
-    fi
-
-    log_info "Installing lsof..."
-
     if [[ "$OS" == "macos" ]]; then
-        # lsof comes pre-installed on macOS
-        log_info "lsof is typically pre-installed on macOS"
+        # shellcheck source=installers/macos/lsof.sh
+        source "${SCRIPT_DIR}/installers/macos/lsof.sh"
     elif [[ "$OS" == "ubuntu" ]]; then
-        sudo apt update
-        sudo apt install -y lsof
+        # shellcheck source=installers/ubuntu/lsof.sh
+        source "${SCRIPT_DIR}/installers/ubuntu/lsof.sh"
     fi
-
-    log_info "lsof installed successfully"
 }
 
 # Install nmap
 install_nmap() {
-    # Check if nmap is already installed
-    if command -v nmap &> /dev/null; then
-        log_info "nmap is already installed (version: $(nmap --version | head -n 1))"
-        return 0
-    fi
-
-    log_info "Installing nmap..."
-
     if [[ "$OS" == "macos" ]]; then
-        brew install nmap
+        # shellcheck source=installers/macos/nmap.sh
+        source "${SCRIPT_DIR}/installers/macos/nmap.sh"
     elif [[ "$OS" == "ubuntu" ]]; then
-        sudo apt update
-        sudo apt install -y nmap
+        # shellcheck source=installers/ubuntu/nmap.sh
+        source "${SCRIPT_DIR}/installers/ubuntu/nmap.sh"
     fi
-
-    log_info "nmap installed successfully"
 }
 
 # Install wslu (for Ubuntu WSL)
@@ -495,18 +208,8 @@ install_wslu() {
         return 0
     fi
 
-    # Check if wslu is already installed
-    if command -v wslview &> /dev/null; then
-        log_info "wslu is already installed"
-        return 0
-    fi
-
-    log_info "Installing wslu (for WSL browser integration)..."
-
-    sudo apt update
-    sudo apt install -y wslu
-
-    log_info "wslu installed successfully"
+    # shellcheck source=installers/ubuntu/wslu.sh
+    source "${SCRIPT_DIR}/installers/ubuntu/wslu.sh"
 }
 
 # Install and configure gnome-keyring
@@ -516,62 +219,8 @@ install_gnome_keyring() {
         return 0
     fi
 
-    # Check if gnome-keyring is already installed
-    if dpkg -l | grep -q gnome-keyring; then
-        log_info "gnome-keyring is already installed"
-    else
-        log_info "Installing gnome-keyring..."
-        sudo apt update
-        sudo apt install -y gnome-keyring libsecret-1-0 libsecret-1-dev
-        log_info "gnome-keyring installed successfully"
-    fi
-
-    # Configure gnome-keyring to start automatically in .zshrc
-    if [ -f ~/.zshrc ]; then
-        if ! grep -q "gnome-keyring-daemon" ~/.zshrc; then
-            log_info "Configuring gnome-keyring daemon to start automatically..."
-            cat >> ~/.zshrc << 'GNOME_EOF'
-
-# Start gnome-keyring daemon if not already running
-if [ -z "$GNOME_KEYRING_CONTROL" ]; then
-    eval $(gnome-keyring-daemon --start --components=secrets,ssh 2>/dev/null)
-    export GNOME_KEYRING_CONTROL
-    export SSH_AUTH_SOCK
-fi
-GNOME_EOF
-            log_info "gnome-keyring daemon configuration added to ~/.zshrc"
-        else
-            log_info "gnome-keyring daemon is already configured in ~/.zshrc"
-        fi
-    fi
-
-    # Configure git to use gnome-keyring as credential helper
-    if command -v git &> /dev/null; then
-        CURRENT_HELPER=$(git config --global credential.helper 2>/dev/null || echo "")
-
-        if [[ "$CURRENT_HELPER" != *"libsecret"* ]]; then
-            log_info "Configuring git to use gnome-keyring for credential storage..."
-
-            # Build git-credential-libsecret if not already built
-            if [ ! -f /usr/share/doc/git/contrib/credential/libsecret/git-credential-libsecret ]; then
-                log_info "Building git-credential-libsecret..."
-                sudo apt install -y libglib2.0-dev
-                cd /usr/share/doc/git/contrib/credential/libsecret || return 1
-                sudo make
-                cd ~ || return 1
-            fi
-
-            git config --global credential.helper /usr/share/doc/git/contrib/credential/libsecret/git-credential-libsecret
-            log_info "git credential helper configured to use gnome-keyring"
-        else
-            log_info "git is already configured to use gnome-keyring"
-        fi
-    fi
-
-    # Configure for granted/assume (envchain already uses libsecret-1-dev)
-    log_info "gnome-keyring is configured for granted/assume (via libsecret)"
-
-    log_info "gnome-keyring setup complete"
+    # shellcheck source=installers/ubuntu/gnome-keyring.sh
+    source "${SCRIPT_DIR}/installers/ubuntu/gnome-keyring.sh"
 }
 
 # Main installation function
