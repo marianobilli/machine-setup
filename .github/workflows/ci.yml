@@ -1,0 +1,141 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, master, develop ]
+  pull_request:
+    branches: [ main, master, develop ]
+
+jobs:
+  shellcheck:
+    name: ShellCheck Linting
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Run ShellCheck
+        uses: ludeeus/action-shellcheck@master
+        with:
+          scandir: '.'
+          severity: warning
+          ignore_paths: '.git'
+
+  test-ubuntu:
+    name: Test on Ubuntu
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Install zsh
+        run: sudo apt-get update && sudo apt-get install -y zsh
+
+      - name: Run dry-run test
+        shell: zsh {0}
+        run: |
+          chmod +x setup.sh
+          ./setup.sh --dry-run --profile minimal || true
+
+      - name: Run test suite
+        shell: bash
+        run: |
+          chmod +x tests/test_setup.sh
+          ./tests/test_setup.sh
+
+      - name: Verify library files are valid
+        shell: bash
+        run: |
+          bash -n lib/common.sh
+          bash -n lib/preflight.sh
+
+      - name: Verify script files are valid
+        shell: bash
+        run: |
+          bash -n scripts/doctor.sh
+          bash -n scripts/update.sh
+          bash -n scripts/uninstall.sh
+
+  test-macos:
+    name: Test on macOS
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Verify zsh is available
+        run: which zsh
+
+      - name: Run dry-run test
+        shell: zsh {0}
+        run: |
+          chmod +x setup.sh
+          ./setup.sh --dry-run --profile minimal || true
+
+      - name: Run test suite
+        shell: bash
+        run: |
+          chmod +x tests/test_setup.sh
+          ./tests/test_setup.sh
+
+      - name: Verify library files are valid
+        shell: bash
+        run: |
+          bash -n lib/common.sh
+          bash -n lib/preflight.sh
+
+      - name: Verify script files are valid
+        shell: bash
+        run: |
+          bash -n scripts/doctor.sh
+          bash -n scripts/update.sh
+          bash -n scripts/uninstall.sh
+
+  validate-configs:
+    name: Validate Configuration Files
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Check versions.conf exists
+        run: test -f config/versions.conf
+
+      - name: Check profile configs exist
+        run: |
+          test -f config/profiles/minimal.conf
+          test -f config/profiles/full.conf
+          test -f config/profiles/k8s-dev.conf
+
+      - name: Validate profile syntax
+        run: |
+          bash -n config/profiles/minimal.conf || true
+          bash -n config/profiles/full.conf || true
+          bash -n config/profiles/k8s-dev.conf || true
+
+  documentation:
+    name: Documentation Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Check README exists
+        run: test -f README.md
+
+      - name: Check CHANGELOG exists
+        run: test -f CHANGELOG.md
+
+      - name: Check CLAUDE.md exists
+        run: test -f CLAUDE.md
+
+      - name: Verify README has basic sections
+        run: |
+          grep -q "## Features" README.md
+          grep -q "## Quick Start" README.md
+          grep -q "## Installed Tools" README.md

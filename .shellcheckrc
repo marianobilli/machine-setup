@@ -1,0 +1,21 @@
+# ShellCheck configuration for machine-setup project
+
+# Disable specific warnings that are acceptable in this project:
+
+# SC1090: Can't follow non-constant source
+disable=SC1090
+
+# SC1091: Not following sourced files
+disable=SC1091
+
+# SC2155: Declare and assign separately to avoid masking return values
+# (We're okay with this pattern in some cases)
+# disable=SC2155
+
+# Use shell directive
+shell=bash
+
+# Enable optional checks
+enable=avoid-nullary-conditions
+enable=quote-safe-variables
+enable=require-variable-braces
