@@ -56,7 +56,22 @@ check_internet() {
     return 1
 }
 
-# Check if sudo is available (Linux only)
+# Check if script is run with sudo (we DON'T want this)
+check_not_sudo() {
+    if [ "$EUID" -eq 0 ] || [ -n "$SUDO_USER" ]; then
+        log_error "DO NOT run this script with sudo!"
+        log_error "The script needs to install tools in YOUR user directory, not root's."
+        echo ""
+        log_info "Correct usage:"
+        echo "  ./setup.sh"
+        echo ""
+        log_info "The script will prompt for your password when needed."
+        return 1
+    fi
+    return 0
+}
+
+# Check if sudo is available (Linux only) and cache credentials
 check_sudo() {
     if [[ "$OS" != "ubuntu" ]]; then
         return 0
@@ -71,18 +86,55 @@ check_sudo() {
 
     # Test sudo access without actually executing anything
     if sudo -n true 2>/dev/null; then
-        log_success "Sudo access verified"
+        log_success "Sudo credentials are cached"
+        # Start sudo keep-alive in background
+        start_sudo_keepalive
         return 0
     else
-        log_warning "Sudo access requires password. You may be prompted during installation."
-        # Try to get sudo access
+        log_info "This script requires sudo access for installing packages."
+        log_info "You will be prompted for your password once."
+        echo ""
+
+        # Try to get sudo access and cache it
         if sudo -v; then
-            log_success "Sudo access granted"
+            log_success "Sudo access granted and cached"
+            # Start sudo keep-alive in background
+            start_sudo_keepalive
             return 0
         else
             log_error "Cannot obtain sudo access"
             return 1
         fi
+    fi
+}
+
+# Keep sudo alive in background
+start_sudo_keepalive() {
+    # Kill any existing sudo keep-alive
+    if [ -n "$SUDO_KEEPALIVE_PID" ]; then
+        kill "$SUDO_KEEPALIVE_PID" 2>/dev/null || true
+    fi
+
+    # Start new keep-alive process in background
+    # This will refresh sudo every 60 seconds
+    (
+        while true; do
+            sleep 60
+            sudo -v
+        done
+    ) &
+
+    SUDO_KEEPALIVE_PID=$!
+    export SUDO_KEEPALIVE_PID
+
+    log_debug "Started sudo keep-alive process (PID: $SUDO_KEEPALIVE_PID)"
+}
+
+# Stop sudo keep-alive
+stop_sudo_keepalive() {
+    if [ -n "$SUDO_KEEPALIVE_PID" ]; then
+        kill "$SUDO_KEEPALIVE_PID" 2>/dev/null || true
+        log_debug "Stopped sudo keep-alive process"
     fi
 }
 
@@ -187,6 +239,11 @@ run_preflight_checks() {
     echo ""
 
     local checks_passed=true
+
+    # CRITICAL: Check if run with sudo (must NOT be)
+    if ! check_not_sudo; then
+        return 1
+    fi
 
     # Critical checks (must pass)
     if ! check_required_tools; then

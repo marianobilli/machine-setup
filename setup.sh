@@ -17,6 +17,15 @@ source "${SCRIPT_DIR}/lib/common.sh"
 # shellcheck source=lib/preflight.sh
 source "${SCRIPT_DIR}/lib/preflight.sh"
 
+# Cleanup function
+cleanup() {
+    # Stop sudo keep-alive if it's running
+    stop_sudo_keepalive
+}
+
+# Set up cleanup trap
+trap cleanup EXIT INT TERM
+
 # Default configuration
 PROFILE="full"
 RUN_PREFLIGHT=true
