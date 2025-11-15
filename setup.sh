@@ -6,7 +6,7 @@
 # Note: We don't use 'set -e' to allow the script to continue even if individual steps fail
 
 # Get script directory
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-${(%):-%x}}")" && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 export SCRIPT_DIR
 
 # Source common utilities
@@ -49,11 +49,13 @@ parse_arguments() {
                 ;;
             --verbose)
                 VERBOSE=true
+                export VERBOSE
                 shift
                 ;;
             --debug)
                 DEBUG=true
                 VERBOSE=true
+                export DEBUG VERBOSE
                 shift
                 ;;
             --profile)
@@ -291,9 +293,9 @@ install_kubectx() {
         # Check if already cloned, if so pull latest, otherwise clone
         if [ -d ~/github/kubectx ]; then
             log_info "Updating existing kubectx installation..."
-            cd ~/github/kubectx
+            cd ~/github/kubectx || return 1
             git pull
-            cd ~
+            cd ~ || return 1
         else
             # Clone from GitHub
             git clone https://github.com/ahmetb/kubectx ~/github/kubectx
@@ -397,8 +399,7 @@ install_k9s() {
     if [[ "$OS" == "macos" ]]; then
         brew install k9s
     elif [[ "$OS" == "ubuntu" ]]; then
-        # Install from GitHub releases
-        K9S_VERSION=$(curl -s https://api.github.com/repos/derailed/k9s/releases/latest | grep '"tag_name":' | sed -E 's/.*"v([^"]+)".*/\1/')
+        # Install from GitHub releases (latest version)
         curl -OL "https://github.com/derailed/k9s/releases/latest/download/k9s_Linux_amd64.tar.gz"
         sudo tar -zxvf k9s_Linux_amd64.tar.gz -C /usr/local/bin/ k9s
         rm k9s_Linux_amd64.tar.gz
@@ -429,18 +430,18 @@ install_envchain() {
         # Clone or update envchain repository
         if [ -d ~/github/envchain ]; then
             log_info "Updating existing envchain repository..."
-            cd ~/github/envchain
+            cd ~/github/envchain || return 1
             git pull
         else
             log_info "Cloning envchain repository..."
             git clone https://github.com/sorah/envchain.git ~/github/envchain
-            cd ~/github/envchain
+            cd ~/github/envchain || return 1
         fi
 
         # Build and install
         make
         sudo make install
-        cd ~
+        cd ~ || return 1
     fi
 
     log_info "envchain installed successfully"
@@ -555,9 +556,9 @@ GNOME_EOF
             if [ ! -f /usr/share/doc/git/contrib/credential/libsecret/git-credential-libsecret ]; then
                 log_info "Building git-credential-libsecret..."
                 sudo apt install -y libglib2.0-dev
-                cd /usr/share/doc/git/contrib/credential/libsecret
+                cd /usr/share/doc/git/contrib/credential/libsecret || return 1
                 sudo make
-                cd ~
+                cd ~ || return 1
             fi
 
             git config --global credential.helper /usr/share/doc/git/contrib/credential/libsecret/git-credential-libsecret
@@ -609,8 +610,8 @@ main() {
     else
         log_info "Detected OS: $DETECTED_OS"
         if [ "$DRY_RUN" != true ]; then
-            read "confirm?Is this correct? (y/n): "
-            if [[ $confirm == "y" || $confirm == "Y" ]]; then
+            read -r -p "Is this correct? (y/n): " confirm
+            if [[ "$confirm" == "y" || "$confirm" == "Y" ]]; then
                 OS=$DETECTED_OS
             else
                 OS=$(ask_os)

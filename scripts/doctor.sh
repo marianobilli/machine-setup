@@ -116,7 +116,8 @@ check_oh_my_zsh() {
 
     if [ -f "$HOME/.zshrc" ]; then
         if grep -q "^plugins=" "$HOME/.zshrc"; then
-            local plugins=$(grep "^plugins=" "$HOME/.zshrc" | sed 's/plugins=(\(.*\))/\1/')
+            local plugins
+            plugins=$(grep "^plugins=" "$HOME/.zshrc" | sed 's/plugins=(\(.*\))/\1/')
             log_info "Enabled plugins: $plugins"
         fi
     fi
@@ -215,7 +216,8 @@ check_ubuntu_tools() {
     # Check git credential helper
     TOTAL_CHECKS=$((TOTAL_CHECKS + 1))
     if command_exists git; then
-        local helper=$(git config --global credential.helper 2>/dev/null || echo "")
+        local helper
+        helper=$(git config --global credential.helper 2>/dev/null || echo "")
         if [[ "$helper" == *"libsecret"* ]]; then
             log_success "git credential helper is configured (libsecret)"
             PASSED_CHECKS=$((PASSED_CHECKS + 1))

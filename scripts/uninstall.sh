@@ -256,13 +256,14 @@ uninstall_wslu() {
 cleanup_github_dir() {
     if [ -d "$HOME/github" ]; then
         # Only remove if it's empty or only contains setup-related repos
-        local repo_count=$(find "$HOME/github" -mindepth 1 -maxdepth 1 -type d | wc -l)
+        local repo_count
+        repo_count=$(find "$HOME/github" -mindepth 1 -maxdepth 1 -type d | wc -l)
 
         if [ "$repo_count" -eq 0 ]; then
-            log_info "Removing empty ~/github directory..."
+            log_info "Removing empty $HOME/github directory..."
             rmdir "$HOME/github"
         else
-            log_info "~/github directory contains other repositories, keeping it"
+            log_info "$HOME/github directory contains other repositories, keeping it"
         fi
     fi
 }

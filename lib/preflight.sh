@@ -143,7 +143,8 @@ check_zsh() {
     log_debug "Checking for zsh..."
 
     if command_exists zsh; then
-        local zsh_version=$(zsh --version | awk '{print $2}')
+        local zsh_version
+        zsh_version=$(zsh --version | awk '{print $2}')
         log_success "zsh is installed (version: $zsh_version)"
         return 0
     else
@@ -158,7 +159,8 @@ check_zsh() {
 check_architecture() {
     log_debug "Checking system architecture..."
 
-    local arch=$(uname -m)
+    local arch
+    arch=$(uname -m)
 
     case "$arch" in
         x86_64|amd64)

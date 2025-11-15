@@ -140,7 +140,8 @@ test_common_lib() {
     fi
 
     # Test detect_os function
-    local detected_os=$(detect_os)
+    local detected_os
+    detected_os=$(detect_os)
     if [ -n "$detected_os" ]; then
         test_pass "detect_os returned: $detected_os"
     else

@@ -4,7 +4,7 @@
 # This file should be sourced by other scripts
 
 # Script version
-SCRIPT_VERSION="2.0.0"
+export SCRIPT_VERSION="2.0.0"
 
 # Colors for output
 RED='\033[0;31m'
@@ -272,8 +272,10 @@ list_profiles() {
     if [ -d "$profiles_dir" ]; then
         for profile in "$profiles_dir"/*.conf; do
             if [ -f "$profile" ]; then
-                local name=$(basename "$profile" .conf)
-                local description=$(grep "^# " "$profile" | head -n 2 | tail -n 1 | sed 's/^# //')
+                local name
+                local description
+                name=$(basename "$profile" .conf)
+                description=$(grep "^# " "$profile" | head -n 2 | tail -n 1 | sed 's/^# //')
                 printf "  %-15s %s\n" "$name" "$description"
             fi
         done
@@ -285,8 +287,9 @@ list_profiles() {
 # Get script directory
 get_script_dir() {
     local source="${BASH_SOURCE[0]}"
+    local dir
     while [ -h "$source" ]; do
-        local dir="$(cd -P "$(dirname "$source")" && pwd)"
+        dir="$(cd -P "$(dirname "$source")" && pwd)"
         source="$(readlink "$source")"
         [[ $source != /* ]] && source="$dir/$source"
     done
