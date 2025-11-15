@@ -1,73 +1,103 @@
-#!/usr/bin/env zsh
+#!/usr/bin/env bash
 
-# Machine Setup Script
+# Machine Setup Script v2.0
 # Installs development tools for macOS or Ubuntu
 
 # Note: We don't use 'set -e' to allow the script to continue even if individual steps fail
 
-# Colors for output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-NC='\033[0m' # No Color
+# Get script directory
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+export SCRIPT_DIR
 
-# Logging functions
-log_info() {
-    echo "${GREEN}[INFO]${NC} $1"
+# Source common utilities
+# shellcheck source=lib/common.sh
+source "${SCRIPT_DIR}/lib/common.sh"
+
+# Source preflight checks
+# shellcheck source=lib/preflight.sh
+source "${SCRIPT_DIR}/lib/preflight.sh"
+
+# Cleanup function
+cleanup() {
+    # Stop sudo keep-alive if it's running
+    stop_sudo_keepalive
 }
 
-log_error() {
-    echo "${RED}[ERROR]${NC} $1"
-}
+# Set up cleanup trap
+trap cleanup EXIT INT TERM
 
-log_warning() {
-    echo "${YELLOW}[WARNING]${NC} $1"
-}
+# Default configuration
+PROFILE="full"
+RUN_PREFLIGHT=true
 
-# Detect OS
-detect_os() {
-    if [[ "$OSTYPE" == "darwin"* ]]; then
-        echo "macos"
-    elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
-        if [ -f /etc/lsb-release ] || [ -f /etc/debian_version ]; then
-            echo "ubuntu"
-        else
-            echo "unknown"
-        fi
-    else
-        echo "unknown"
-    fi
-}
-
-# Ask user to confirm OS
-ask_os() {
-    echo "Please select your operating system:"
-    echo "1) macOS"
-    echo "2) Ubuntu"
-    read "choice?Enter your choice (1 or 2): "
-
-    case $choice in
-        1)
-            echo "macos"
-            ;;
-        2)
-            echo "ubuntu"
-            ;;
-        *)
-            log_error "Invalid choice. Please run the script again."
-            exit 1
-            ;;
-    esac
+# Parse command-line arguments
+parse_arguments() {
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            -h|--help)
+                show_help
+                exit 0
+                ;;
+            -v|--version)
+                echo "Machine Setup Script v${SCRIPT_VERSION}"
+                exit 0
+                ;;
+            --dry-run)
+                DRY_RUN=true
+                log_info "DRY RUN MODE: No actual changes will be made"
+                shift
+                ;;
+            --verbose)
+                VERBOSE=true
+                export VERBOSE
+                shift
+                ;;
+            --debug)
+                DEBUG=true
+                VERBOSE=true
+                export DEBUG VERBOSE
+                shift
+                ;;
+            --profile)
+                if [ -n "$2" ] && [ "${2:0:1}" != "-" ]; then
+                    PROFILE="$2"
+                    shift 2
+                else
+                    log_error "Error: --profile requires a profile name"
+                    exit 1
+                fi
+                ;;
+            --list-profiles)
+                list_profiles
+                exit 0
+                ;;
+            --no-preflight)
+                RUN_PREFLIGHT=false
+                shift
+                ;;
+            *)
+                log_error "Unknown option: $1"
+                echo "Use --help for usage information"
+                exit 1
+                ;;
+        esac
+    done
 }
 
 # Install Homebrew (macOS only)
 install_brew() {
-    if command -v brew &> /dev/null; then
+    if command_exists brew; then
         log_info "Homebrew is already installed"
         return 0
     fi
 
     log_info "Installing Homebrew..."
+
+    if [ "$DRY_RUN" = true ]; then
+        log_info "[DRY RUN] Would install Homebrew"
+        return 0
+    fi
+
     /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 
     # Add Homebrew to PATH for Apple Silicon Macs
@@ -263,9 +293,9 @@ install_kubectx() {
         # Check if already cloned, if so pull latest, otherwise clone
         if [ -d ~/github/kubectx ]; then
             log_info "Updating existing kubectx installation..."
-            cd ~/github/kubectx
+            cd ~/github/kubectx || return 1
             git pull
-            cd ~
+            cd ~ || return 1
         else
             # Clone from GitHub
             git clone https://github.com/ahmetb/kubectx ~/github/kubectx
@@ -369,8 +399,7 @@ install_k9s() {
     if [[ "$OS" == "macos" ]]; then
         brew install k9s
     elif [[ "$OS" == "ubuntu" ]]; then
-        # Install from GitHub releases
-        K9S_VERSION=$(curl -s https://api.github.com/repos/derailed/k9s/releases/latest | grep '"tag_name":' | sed -E 's/.*"v([^"]+)".*/\1/')
+        # Install from GitHub releases (latest version)
         curl -OL "https://github.com/derailed/k9s/releases/latest/download/k9s_Linux_amd64.tar.gz"
         sudo tar -zxvf k9s_Linux_amd64.tar.gz -C /usr/local/bin/ k9s
         rm k9s_Linux_amd64.tar.gz
@@ -401,18 +430,18 @@ install_envchain() {
         # Clone or update envchain repository
         if [ -d ~/github/envchain ]; then
             log_info "Updating existing envchain repository..."
-            cd ~/github/envchain
+            cd ~/github/envchain || return 1
             git pull
         else
             log_info "Cloning envchain repository..."
             git clone https://github.com/sorah/envchain.git ~/github/envchain
-            cd ~/github/envchain
+            cd ~/github/envchain || return 1
         fi
 
         # Build and install
         make
         sudo make install
-        cd ~
+        cd ~ || return 1
     fi
 
     log_info "envchain installed successfully"
@@ -527,9 +556,9 @@ GNOME_EOF
             if [ ! -f /usr/share/doc/git/contrib/credential/libsecret/git-credential-libsecret ]; then
                 log_info "Building git-credential-libsecret..."
                 sudo apt install -y libglib2.0-dev
-                cd /usr/share/doc/git/contrib/credential/libsecret
+                cd /usr/share/doc/git/contrib/credential/libsecret || return 1
                 sudo make
-                cd ~
+                cd ~ || return 1
             fi
 
             git config --global credential.helper /usr/share/doc/git/contrib/credential/libsecret/git-credential-libsecret
@@ -547,10 +576,30 @@ GNOME_EOF
 
 # Main installation function
 main() {
-    echo "======================================"
-    echo "  Machine Setup Script"
-    echo "======================================"
+    # Parse command-line arguments
+    parse_arguments "$@"
+
+    # Show banner
+    show_banner
+
+    log_info "Profile: $PROFILE"
+
+    if [ "$DRY_RUN" = true ]; then
+        log_warning "DRY RUN MODE: No changes will be made"
+    fi
+
     echo ""
+
+    # Load versions configuration
+    load_versions
+
+    # Load profile configuration
+    if ! load_profile "$PROFILE"; then
+        log_error "Failed to load profile: $PROFILE"
+        log_info "Available profiles:"
+        list_profiles
+        exit 1
+    fi
 
     # Detect and confirm OS
     DETECTED_OS=$(detect_os)
@@ -560,16 +609,31 @@ main() {
         OS=$(ask_os)
     else
         log_info "Detected OS: $DETECTED_OS"
-        read "confirm?Is this correct? (y/n): "
-        if [[ $confirm == "y" || $confirm == "Y" ]]; then
-            OS=$DETECTED_OS
+        if [ "$DRY_RUN" != true ]; then
+            read -r -p "Is this correct? (y/n): " confirm
+            if [[ "$confirm" == "y" || "$confirm" == "Y" ]]; then
+                OS=$DETECTED_OS
+            else
+                OS=$(ask_os)
+            fi
         else
-            OS=$(ask_os)
+            OS=$DETECTED_OS
         fi
     fi
 
+    export OS
+
     log_info "Setting up machine for: $OS"
     echo ""
+
+    # Run pre-flight checks
+    if [ "$RUN_PREFLIGHT" = true ] && [ "$DRY_RUN" != true ]; then
+        if ! run_preflight_checks; then
+            log_error "Pre-flight checks failed. Please fix the issues above."
+            log_info "To skip pre-flight checks, use: --no-preflight"
+            exit 1
+        fi
+    fi
 
     # Install Homebrew first if macOS
     if [[ "$OS" == "macos" ]]; then
@@ -578,51 +642,91 @@ main() {
     fi
 
     # Install Oh My Zsh with Powerlevel10k theme
-    install_oh_my_zsh
-    echo ""
+    if should_install "oh_my_zsh"; then
+        install_oh_my_zsh
+        echo ""
+    fi
 
-    # Install all tools
-    install_python
-    echo ""
+    # Install all tools based on profile
+    if should_install "python"; then
+        install_python
+        echo ""
+    fi
 
-    install_nodejs
-    echo ""
+    if should_install "nodejs"; then
+        install_nodejs
+        echo ""
+    fi
 
-    install_claude_code
-    echo ""
+    if should_install "claude_code"; then
+        install_claude_code
+        echo ""
+    fi
 
-    install_kubectx
-    echo ""
+    if should_install "kubectx"; then
+        install_kubectx
+        echo ""
+    fi
 
-    install_kubectl
-    echo ""
+    if should_install "kubectl"; then
+        install_kubectl
+        echo ""
+    fi
 
-    install_granted
-    echo ""
+    if should_install "granted"; then
+        install_granted
+        echo ""
+    fi
 
-    install_k9s
-    echo ""
+    if should_install "k9s"; then
+        install_k9s
+        echo ""
+    fi
 
-    install_envchain
-    echo ""
+    if should_install "envchain"; then
+        install_envchain
+        echo ""
+    fi
 
-    install_lsof
-    echo ""
+    if should_install "lsof"; then
+        install_lsof
+        echo ""
+    fi
 
-    install_nmap
-    echo ""
+    if should_install "nmap"; then
+        install_nmap
+        echo ""
+    fi
 
-    install_wslu
-    echo ""
+    if should_install "wslu"; then
+        install_wslu
+        echo ""
+    fi
 
-    install_gnome_keyring
-    echo ""
+    if should_install "gnome_keyring"; then
+        install_gnome_keyring
+        echo ""
+    fi
 
     echo "======================================"
-    log_info "Setup Complete!"
+    log_success "Setup Complete!"
     echo "======================================"
     echo ""
+
+    if [ "$DRY_RUN" = true ]; then
+        log_info "This was a DRY RUN - no actual changes were made"
+        log_info "Run without --dry-run to perform actual installation"
+        echo ""
+        return 0
+    fi
+
+    log_info "Installation log: $LOG_FILE"
     log_info "Please restart your terminal or run: source ~/.zshrc"
+    echo ""
+    log_info "Next steps:"
+    echo "  • Run './scripts/doctor.sh' to verify your installation"
+    echo "  • Run 'p10k configure' to customize your Powerlevel10k theme"
+    echo "  • Run './scripts/update.sh' to update tools in the future"
     echo ""
     echo "======================================"
     echo "  INSTALLED TOOLS SUMMARY"
@@ -731,5 +835,5 @@ main() {
     echo "======================================"
 }
 
-# Run main function
-main
+# Run main function with all arguments
+main "$@"

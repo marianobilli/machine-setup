@@ -1,6 +1,18 @@
-# Machine Setup Script
+# Machine Setup Script v2.0
 
 Automated development environment setup script for macOS and Ubuntu. This script installs and configures essential development tools for cloud-native and Kubernetes workflows.
+
+## ✨ New in v2.0
+
+- **🎯 Installation Profiles**: Choose minimal, full, or k8s-dev profiles
+- **🔍 Pre-flight Checks**: Validates system before installation
+- **📊 Health Diagnostics**: `doctor.sh` script checks your setup
+- **🔄 Update Management**: `update.sh` keeps tools current
+- **🗑️ Safe Uninstall**: `uninstall.sh` cleanly removes tools
+- **📝 Enhanced Logging**: Persistent logs at `~/.machine-setup/setup.log`
+- **🔒 Security**: Checksum verification for downloads
+- **🧪 CI/CD**: Automated testing with GitHub Actions
+- **⚙️ CLI Flags**: `--dry-run`, `--verbose`, `--debug`, `--profile`
 
 ## Features
 
@@ -13,6 +25,8 @@ Automated development environment setup script for macOS and Ubuntu. This script
 - **WSL Optimized**: Includes wslu for browser integration from WSL terminal (Ubuntu)
 - **Organized**: Clones GitHub repositories to `~/github` for easy management
 - **Safe**: Backs up existing `.zshrc` before making changes
+- **Profiles**: Choose installation profiles based on your needs
+- **Validated**: Pre-flight checks ensure system requirements are met
 
 ## Supported Operating Systems
 
@@ -40,10 +54,123 @@ chmod +x setup.sh
 ```
 
 The script will:
-1. Detect your operating system
-2. Ask for confirmation
-3. Install all tools automatically
-4. Display a summary of installed tools
+1. Run pre-flight checks (disk space, internet, permissions)
+2. Detect your operating system
+3. Ask for confirmation
+4. Install all tools automatically
+5. Display a summary of installed tools
+
+## Usage
+
+### Command-Line Options
+
+```bash
+# Show help
+./setup.sh --help
+
+# Show version
+./setup.sh --version
+
+# Preview what would be installed (dry-run)
+./setup.sh --dry-run
+
+# Use a specific profile
+./setup.sh --profile minimal       # Essential tools only
+./setup.sh --profile k8s-dev       # Kubernetes development
+./setup.sh --profile full          # All tools (default)
+
+# List available profiles
+./setup.sh --list-profiles
+
+# Verbose output
+./setup.sh --verbose
+
+# Debug mode
+./setup.sh --debug
+
+# Combine options
+./setup.sh --dry-run --verbose --profile minimal
+```
+
+### Installation Profiles
+
+The script supports three installation profiles:
+
+#### **Minimal** (`--profile minimal`)
+Essential development tools only:
+- Oh My Zsh + Powerlevel10k
+- Python 3.12
+- Node.js & npm
+- Claude Code
+- lsof
+
+Perfect for: Basic development environments, limited disk space
+
+#### **Full** (default)
+All available tools:
+- Everything in Minimal, plus:
+- Kubernetes tools (kubectl, kubectx, k9s)
+- AWS tools (granted/assume)
+- Environment management (envchain)
+- Network tools (nmap)
+- Security tools (gnome-keyring on Ubuntu)
+
+Perfect for: Cloud-native and Kubernetes development
+
+#### **K8s-Dev** (`--profile k8s-dev`)
+Optimized for Kubernetes developers:
+- Same as Full profile
+- Specifically tuned for cloud-native workflows
+
+Perfect for: DevOps engineers, SREs, Kubernetes developers
+
+## Utility Scripts
+
+### Doctor - Health Check
+
+Diagnose your installation and verify all tools are working:
+
+```bash
+./scripts/doctor.sh
+```
+
+The doctor script:
+- Checks if all tools are installed
+- Verifies configurations
+- Tests Oh My Zsh and plugins
+- Validates git credential helper
+- Reports success rate
+
+### Update - Keep Tools Current
+
+Update all installed tools to their latest versions:
+
+```bash
+./scripts/update.sh
+```
+
+The update script:
+- Updates Oh My Zsh and plugins
+- Updates Homebrew packages (macOS)
+- Updates apt packages (Ubuntu)
+- Updates global npm packages
+- Updates Python pip
+- Updates tools from GitHub repositories
+
+### Uninstall - Clean Removal
+
+Safely remove installed tools:
+
+```bash
+./scripts/uninstall.sh
+```
+
+The uninstall script:
+- Removes all installed tools
+- Preserves Oh My Zsh (optional)
+- Restores .zshrc backup
+- Cleans up log files
+- Removes temporary directories
 
 ## Installed Tools
 
@@ -266,21 +393,136 @@ The script continues execution even if individual installations fail, allowing y
 
 ```
 machine-setup/
-├── setup.sh          # Main setup script
-├── README.md         # This file
-└── CLAUDE.md         # Claude Code project guidance
+├── setup.sh                    # Main setup script
+├── README.md                   # This file
+├── CLAUDE.md                   # Claude Code project guidance
+├── CHANGELOG.md                # Version history
+├── .shellcheckrc               # ShellCheck configuration
+│
+├── lib/                        # Shared libraries
+│   ├── common.sh              # Common utilities and logging
+│   └── preflight.sh           # Pre-flight checks
+│
+├── config/                     # Configuration files
+│   ├── versions.conf          # Tool version management
+│   └── profiles/              # Installation profiles
+│       ├── minimal.conf       # Minimal profile
+│       ├── full.conf          # Full profile (default)
+│       └── k8s-dev.conf       # Kubernetes dev profile
+│
+├── scripts/                    # Utility scripts
+│   ├── doctor.sh              # Health check and diagnostics
+│   ├── update.sh              # Update installed tools
+│   └── uninstall.sh           # Uninstall tools
+│
+├── tests/                      # Test suite
+│   └── test_setup.sh          # Automated tests
+│
+└── .github/                    # GitHub configuration
+    └── workflows/
+        └── ci.yml             # CI/CD pipeline
+```
+
+## Logs and Debugging
+
+### Log Files
+
+All operations are logged to: `~/.machine-setup/setup.log`
+
+View logs:
+```bash
+cat ~/.machine-setup/setup.log
+tail -f ~/.machine-setup/setup.log  # Follow logs in real-time
+```
+
+### Debug Mode
+
+Enable detailed output:
+```bash
+./setup.sh --debug
+./setup.sh --verbose
 ```
 
 ## Customization
 
-To modify the script:
+### Creating Custom Profiles
 
-1. Edit `setup.sh`
-2. Each tool has its own `install_<tool>()` function
-3. Tools are called sequentially in the `main()` function
-4. Add new tools by creating a new install function and calling it in `main()`
+Create a new profile in `config/profiles/my-profile.conf`:
+
+```bash
+# My Custom Profile
+oh_my_zsh=true
+python=true
+nodejs=true
+kubectl=false
+# ... set other tools
+```
+
+Use your profile:
+```bash
+./setup.sh --profile my-profile
+```
+
+### Modifying Tool Versions
+
+Edit `config/versions.conf` to change tool versions:
+
+```bash
+PYTHON_VERSION="3.12"
+KUBECTL_VERSION="v1.28"
+GRANTED_VERSION="0.20.5"
+```
+
+### Adding New Tools
+
+1. Create a new install function in `setup.sh`
+2. Add it to the `main()` function
+3. Update the configuration profiles
+4. Add version info to `config/versions.conf` (if applicable)
 
 ## Troubleshooting
+
+### Using the Doctor Script
+
+Before diving into manual troubleshooting, run the doctor script:
+
+```bash
+./scripts/doctor.sh
+```
+
+This will diagnose common issues and tell you exactly what's wrong.
+
+### Check the Logs
+
+View detailed logs:
+```bash
+cat ~/.machine-setup/setup.log
+```
+
+### Pre-flight Check Failures
+
+If pre-flight checks fail:
+
+**Disk Space:**
+```bash
+df -h ~  # Check available space
+# Free up space or use --profile minimal
+```
+
+**Internet Connectivity:**
+```bash
+curl -I https://github.com  # Test connection
+# Check your network settings
+```
+
+**Zsh Not Installed:**
+```bash
+# Ubuntu
+sudo apt install zsh
+
+# macOS
+brew install zsh  # or use built-in zsh
+```
 
 ### Permission Denied
 ```bash
