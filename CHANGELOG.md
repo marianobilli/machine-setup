@@ -5,6 +5,59 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+#### CI/CD Enhancements
+- **Enhanced GitHub Actions Workflow**: Improved PR validation system
+  - Automatic cancellation of in-progress runs on new commits
+  - PR-specific triggers (opened, synchronize, reopened, ready_for_review)
+  - Concurrency control to prevent redundant runs
+  - Summary job (`All Checks Passed`) that depends on all other jobs
+  - PR status summary with detailed check results
+  - GitHub Step Summary for better visibility
+
+#### Documentation
+- **CONTRIBUTING.md**: Comprehensive contribution guidelines
+  - Development workflow
+  - Coding standards
+  - Testing requirements
+  - PR process
+  - Commit message conventions
+- **.github/BRANCH_PROTECTION.md**: Step-by-step branch protection setup guide
+  - Required status checks configuration
+  - Visual guide with examples
+  - Troubleshooting section
+  - Best practices
+- **.github/pull_request_template.md**: PR template to guide contributors
+  - Type of change checklist
+  - Testing checklist
+  - Documentation requirements
+
+#### Branch Protection Support
+- CI workflow now supports branch protection rules
+- Single required status check: `All Checks Passed`
+- Prevents merging PRs with failing tests
+- Ensures code review before merge
+
+### Fixed
+- **Sudo Password Handling**: Improved sudo credential management
+  - Detects and prevents script execution with sudo
+  - Prompts for password only once during installation
+  - Background keep-alive process refreshes credentials every 60 seconds
+  - Proper cleanup on script exit
+  - Clear error messages for incorrect usage
+  - Ensures tools install to user directory, not root
+
+### Technical Improvements
+- Added permissions configuration for GitHub Actions
+- Improved CI job naming and organization
+- Better status reporting in CI logs
+- Cleanup traps in main setup script
+
+---
+
 ## [2.0.0] - 2025-11-15
 
 ### Added

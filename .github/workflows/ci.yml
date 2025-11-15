@@ -5,6 +5,16 @@ on:
     branches: [ main, master, develop ]
   pull_request:
     branches: [ main, master, develop ]
+    types: [opened, synchronize, reopened, ready_for_review]
+
+# Cancel in-progress runs when a new workflow with the same group name is triggered
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write  # For commenting on PRs
 
 jobs:
   shellcheck:
@@ -139,3 +149,53 @@ jobs:
           grep -q "## Features" README.md
           grep -q "## Quick Start" README.md
           grep -q "## Installed Tools" README.md
+
+  # This job serves as the branch protection rule check
+  # It will only pass if all other jobs pass
+  all-checks-pass:
+    name: All Checks Passed
+    runs-on: ubuntu-latest
+    needs: [shellcheck, test-ubuntu, test-macos, validate-configs, documentation]
+    if: always()
+
+    steps:
+      - name: Check all jobs status
+        run: |
+          if [[ "${{ needs.shellcheck.result }}" != "success" ]] || \
+             [[ "${{ needs.test-ubuntu.result }}" != "success" ]] || \
+             [[ "${{ needs.test-macos.result }}" != "success" ]] || \
+             [[ "${{ needs.validate-configs.result }}" != "success" ]] || \
+             [[ "${{ needs.documentation.result }}" != "success" ]]; then
+            echo "❌ One or more required checks failed"
+            echo ""
+            echo "Check results:"
+            echo "  ShellCheck: ${{ needs.shellcheck.result }}"
+            echo "  Ubuntu Tests: ${{ needs.test-ubuntu.result }}"
+            echo "  macOS Tests: ${{ needs.test-macos.result }}"
+            echo "  Config Validation: ${{ needs.validate-configs.result }}"
+            echo "  Documentation: ${{ needs.documentation.result }}"
+            exit 1
+          else
+            echo "✅ All required checks passed!"
+            echo ""
+            echo "Check results:"
+            echo "  ShellCheck: ${{ needs.shellcheck.result }}"
+            echo "  Ubuntu Tests: ${{ needs.test-ubuntu.result }}"
+            echo "  macOS Tests: ${{ needs.test-macos.result }}"
+            echo "  Config Validation: ${{ needs.validate-configs.result }}"
+            echo "  Documentation: ${{ needs.documentation.result }}"
+          fi
+
+      - name: PR Check Summary
+        if: github.event_name == 'pull_request'
+        run: |
+          echo "### ✅ All CI Checks Passed!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "This PR has passed all required checks:" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ ShellCheck Linting" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Ubuntu Tests (51 tests)" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ macOS Tests (51 tests)" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Configuration Validation" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Documentation Checks" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Ready for review and merge!** 🚀" >> $GITHUB_STEP_SUMMARY
