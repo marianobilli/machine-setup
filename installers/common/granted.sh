@@ -21,15 +21,15 @@ configure_granted() {
     # Add assume alias to zshrc if not already present
     if [ -f ~/.zshrc ]; then
         if ! grep -q "alias assume=" ~/.zshrc 2>/dev/null; then
-            log_info "Adding assume alias to ~/.zshrc"
+            log_info "Adding assume alias to $HOME/.zshrc"
             echo 'alias assume="source assume"' >> ~/.zshrc
             log_success "Granted alias configured"
-            log_warning "Please restart your shell or run 'source ~/.zshrc' to use the assume alias"
+            log_warning "Please restart your shell or run 'source $HOME/.zshrc' to use the assume alias"
         else
             log_info "Granted assume alias is already configured"
         fi
     else
-        log_warning "~/.zshrc not found. Please add: alias assume=\"source assume\""
+        log_warning "$HOME/.zshrc not found. Please add: alias assume=\"source assume\""
     fi
 }
 
