@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
-# Install Node.js and npm on macOS
-# This script should be sourced or called from the main setup script
+# Install Node.js
+# Handles both macOS and Ubuntu with OS-specific setup
 
 # Get script directory
 INSTALLER_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -20,7 +20,13 @@ install_nodejs() {
 
     log_info "Installing Node.js and npm..."
 
-    brew install node
+    if [[ "$OS" == "macos" ]]; then
+        brew install node
+    elif [[ "$OS" == "ubuntu" ]]; then
+        # Install using NodeSource repository for latest LTS
+        curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -
+        sudo apt install -y nodejs
+    fi
 
     log_info "Node.js and npm installed successfully"
 }

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
-# Install Python 3.12 on macOS
-# This script should be sourced or called from the main setup script
+# Install Python 3.12
+# Handles both macOS and Ubuntu with OS-specific setup
 
 # Get script directory
 INSTALLER_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -20,9 +20,20 @@ install_python() {
 
     log_info "Installing Python 3.12..."
 
-    brew install python@3.12
-    # Link python3.12 to python3
-    brew link python@3.12
+    if [[ "$OS" == "macos" ]]; then
+        brew install python@3.12
+        # Link python3.12 to python3
+        brew link python@3.12
+    elif [[ "$OS" == "ubuntu" ]]; then
+        # Ubuntu needs PPA for Python 3.12
+        sudo apt update
+        sudo apt install -y software-properties-common
+        sudo add-apt-repository -y ppa:deadsnakes/ppa
+        sudo apt update
+        sudo apt install -y python3.12 python3.12-venv python3.12-dev
+        # Set python3.12 as alternative
+        sudo update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.12 1
+    fi
 
     log_info "Python 3.12 installed successfully"
 }

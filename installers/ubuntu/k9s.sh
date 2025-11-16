@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Install k9s on Ubuntu
-# This script should be sourced or called from the main setup script
+# Downloads from GitHub releases (not available via apt)
 
 # Get script directory
 INSTALLER_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

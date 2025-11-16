@@ -96,125 +96,70 @@ install_oh_my_zsh() {
     source "${SCRIPT_DIR}/installers/common/oh-my-zsh.sh"
 }
 
-# Install Python 3.12
+# Install packages from config file
+install_packages() {
+    # shellcheck source=installers/package-manager.sh
+    source "${SCRIPT_DIR}/installers/package-manager.sh"
+    install_all_packages
+}
+
+# Install Python 3.12 (requires custom setup for PPA on Ubuntu)
 install_python() {
-    if [[ "$OS" == "macos" ]]; then
-        # shellcheck source=installers/macos/python.sh
-        source "${SCRIPT_DIR}/installers/macos/python.sh"
-    elif [[ "$OS" == "ubuntu" ]]; then
-        # shellcheck source=installers/ubuntu/python.sh
-        source "${SCRIPT_DIR}/installers/ubuntu/python.sh"
-    fi
+    # shellcheck source=installers/common/python.sh
+    source "${SCRIPT_DIR}/installers/common/python.sh"
 }
 
-# Install Node.js and npm
+# Install Node.js (requires custom setup for NodeSource on Ubuntu)
 install_nodejs() {
-    if [[ "$OS" == "macos" ]]; then
-        # shellcheck source=installers/macos/nodejs.sh
-        source "${SCRIPT_DIR}/installers/macos/nodejs.sh"
-    elif [[ "$OS" == "ubuntu" ]]; then
-        # shellcheck source=installers/ubuntu/nodejs.sh
-        source "${SCRIPT_DIR}/installers/ubuntu/nodejs.sh"
-    fi
+    # shellcheck source=installers/common/nodejs.sh
+    source "${SCRIPT_DIR}/installers/common/nodejs.sh"
 }
 
-# Install Claude Code
+# Install Claude Code (via npm, not package manager)
 install_claude_code() {
     # shellcheck source=installers/common/claude-code.sh
     source "${SCRIPT_DIR}/installers/common/claude-code.sh"
 }
 
-# Install kubectx
-install_kubectx() {
-    if [[ "$OS" == "macos" ]]; then
-        # shellcheck source=installers/macos/kubectx.sh
-        source "${SCRIPT_DIR}/installers/macos/kubectx.sh"
-    elif [[ "$OS" == "ubuntu" ]]; then
-        # shellcheck source=installers/ubuntu/kubectx.sh
-        source "${SCRIPT_DIR}/installers/ubuntu/kubectx.sh"
-    fi
-}
-
-# Install AWS kubectl
-install_kubectl() {
-    if [[ "$OS" == "macos" ]]; then
-        # shellcheck source=installers/macos/kubectl.sh
-        source "${SCRIPT_DIR}/installers/macos/kubectl.sh"
-    elif [[ "$OS" == "ubuntu" ]]; then
-        # shellcheck source=installers/ubuntu/kubectl.sh
-        source "${SCRIPT_DIR}/installers/ubuntu/kubectl.sh"
-    fi
-}
-
-# Install Granted (assume)
-install_granted() {
-    if [[ "$OS" == "macos" ]]; then
-        # shellcheck source=installers/macos/granted.sh
-        source "${SCRIPT_DIR}/installers/macos/granted.sh"
-    elif [[ "$OS" == "ubuntu" ]]; then
-        # shellcheck source=installers/ubuntu/granted.sh
-        source "${SCRIPT_DIR}/installers/ubuntu/granted.sh"
-    fi
-}
-
-# Install k9s
-install_k9s() {
-    if [[ "$OS" == "macos" ]]; then
-        # shellcheck source=installers/macos/k9s.sh
-        source "${SCRIPT_DIR}/installers/macos/k9s.sh"
-    elif [[ "$OS" == "ubuntu" ]]; then
-        # shellcheck source=installers/ubuntu/k9s.sh
-        source "${SCRIPT_DIR}/installers/ubuntu/k9s.sh"
-    fi
-}
-
-# Install envchain
-install_envchain() {
-    if [[ "$OS" == "macos" ]]; then
-        # shellcheck source=installers/macos/envchain.sh
-        source "${SCRIPT_DIR}/installers/macos/envchain.sh"
-    elif [[ "$OS" == "ubuntu" ]]; then
-        # shellcheck source=installers/ubuntu/envchain.sh
-        source "${SCRIPT_DIR}/installers/ubuntu/envchain.sh"
-    fi
-}
-
-# Install lsof
-install_lsof() {
-    if [[ "$OS" == "macos" ]]; then
-        # shellcheck source=installers/macos/lsof.sh
-        source "${SCRIPT_DIR}/installers/macos/lsof.sh"
-    elif [[ "$OS" == "ubuntu" ]]; then
-        # shellcheck source=installers/ubuntu/lsof.sh
-        source "${SCRIPT_DIR}/installers/ubuntu/lsof.sh"
-    fi
-}
-
-# Install nmap
-install_nmap() {
-    if [[ "$OS" == "macos" ]]; then
-        # shellcheck source=installers/macos/nmap.sh
-        source "${SCRIPT_DIR}/installers/macos/nmap.sh"
-    elif [[ "$OS" == "ubuntu" ]]; then
-        # shellcheck source=installers/ubuntu/nmap.sh
-        source "${SCRIPT_DIR}/installers/ubuntu/nmap.sh"
-    fi
-}
-
-# Install wslu (for Ubuntu WSL)
-install_wslu() {
-    # Only install on Ubuntu (typically for WSL)
+# Install kubectx on Ubuntu (requires git clone)
+install_kubectx_ubuntu() {
     if [[ "$OS" != "ubuntu" ]]; then
         return 0
     fi
 
-    # shellcheck source=installers/ubuntu/wslu.sh
-    source "${SCRIPT_DIR}/installers/ubuntu/wslu.sh"
+    # shellcheck source=installers/ubuntu/kubectx.sh
+    source "${SCRIPT_DIR}/installers/ubuntu/kubectx.sh"
 }
 
-# Install and configure gnome-keyring
+# Install k9s on Ubuntu (download from GitHub)
+install_k9s_ubuntu() {
+    if [[ "$OS" != "ubuntu" ]]; then
+        return 0
+    fi
+
+    # shellcheck source=installers/ubuntu/k9s.sh
+    source "${SCRIPT_DIR}/installers/ubuntu/k9s.sh"
+}
+
+# Install envchain on Ubuntu (build from source)
+install_envchain_ubuntu() {
+    if [[ "$OS" != "ubuntu" ]]; then
+        return 0
+    fi
+
+    # shellcheck source=installers/ubuntu/envchain.sh
+    source "${SCRIPT_DIR}/installers/ubuntu/envchain.sh"
+}
+
+# Configure Granted alias
+configure_granted() {
+    # shellcheck source=installers/common/granted.sh
+    source "${SCRIPT_DIR}/installers/common/granted.sh"
+    configure_granted
+}
+
+# Install and configure gnome-keyring (Ubuntu only)
 install_gnome_keyring() {
-    # Only install on Ubuntu
     if [[ "$OS" != "ubuntu" ]]; then
         return 0
     fi
@@ -296,7 +241,7 @@ main() {
         echo ""
     fi
 
-    # Install all tools based on profile
+    # Install tools requiring custom setup
     if should_install "python"; then
         install_python
         echo ""
@@ -307,51 +252,40 @@ main() {
         echo ""
     fi
 
+    # Install packages from config file (kubectl, kubectx, k9s, granted, lsof, nmap, envchain, wslu)
+    # Note: This handles most packages via brew/apt
+    install_packages
+    echo ""
+
+    # Install Claude Code (via npm, not in package config)
     if should_install "claude_code"; then
         install_claude_code
         echo ""
     fi
 
+    # Ubuntu-specific custom installers (for packages that can't use apt)
     if should_install "kubectx"; then
-        install_kubectx
-        echo ""
-    fi
-
-    if should_install "kubectl"; then
-        install_kubectl
-        echo ""
-    fi
-
-    if should_install "granted"; then
-        install_granted
+        install_kubectx_ubuntu
         echo ""
     fi
 
     if should_install "k9s"; then
-        install_k9s
+        install_k9s_ubuntu
         echo ""
     fi
 
     if should_install "envchain"; then
-        install_envchain
+        install_envchain_ubuntu
         echo ""
     fi
 
-    if should_install "lsof"; then
-        install_lsof
+    # Configure Granted alias (after package installation)
+    if should_install "granted"; then
+        configure_granted
         echo ""
     fi
 
-    if should_install "nmap"; then
-        install_nmap
-        echo ""
-    fi
-
-    if should_install "wslu"; then
-        install_wslu
-        echo ""
-    fi
-
+    # Install and configure gnome-keyring (Ubuntu only)
     if should_install "gnome_keyring"; then
         install_gnome_keyring
         echo ""
