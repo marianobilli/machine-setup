@@ -317,13 +317,13 @@ main() {
     echo ""
 
     if [[ "$OS" == "macos" ]]; then
-        echo "${GREEN}Homebrew${NC}"
+        echo -e "${GREEN}Homebrew${NC}"
         echo "  Package manager for macOS"
         echo "  Usage: brew install <package>"
         echo ""
     fi
 
-    echo "${GREEN}Oh My Zsh + Powerlevel10k + Enhanced Plugins${NC}"
+    echo -e "${GREEN}Oh My Zsh + Powerlevel10k + Enhanced Plugins${NC}"
     echo "  Enhanced Zsh configuration framework with beautiful theme"
     echo "  Theme: Powerlevel10k (run 'p10k configure' to customize)"
     echo "  Location: ~/.oh-my-zsh"
@@ -341,27 +341,27 @@ main() {
     echo "    • extract - Universal archive extraction (supports zip, tar, gz, etc.)"
     echo ""
 
-    echo "${GREEN}Python 3.12${NC}"
+    echo -e "${GREEN}Python 3.12${NC}"
     echo "  Modern Python interpreter"
     echo "  Usage: python3.12 or python3"
     echo ""
 
-    echo "${GREEN}Node.js & npm${NC}"
+    echo -e "${GREEN}Node.js & npm${NC}"
     echo "  JavaScript runtime and package manager"
     echo "  Usage: node <file.js>, npm install <package>"
     echo ""
 
-    echo "${GREEN}Claude Code${NC}"
+    echo -e "${GREEN}Claude Code${NC}"
     echo "  Anthropic's AI-powered coding assistant CLI"
     echo "  Usage: claude"
     echo ""
 
-    echo "${GREEN}kubectl${NC}"
+    echo -e "${GREEN}kubectl${NC}"
     echo "  Kubernetes command-line tool for cluster management"
     echo "  Usage: kubectl get pods, kubectl apply -f <file>"
     echo ""
 
-    echo "${GREEN}kubectx & kubens${NC}"
+    echo -e "${GREEN}kubectx & kubens${NC}"
     echo "  Quick Kubernetes context and namespace switcher"
     echo "  Usage: kubectx <context>, kubens <namespace>"
     if [[ "$OS" == "ubuntu" ]]; then
@@ -369,17 +369,17 @@ main() {
     fi
     echo ""
 
-    echo "${GREEN}Granted (assume)${NC}"
+    echo -e "${GREEN}Granted (assume)${NC}"
     echo "  AWS IAM credential manager for easy role switching"
     echo "  Usage: assume <profile-name>"
     echo ""
 
-    echo "${GREEN}k9s${NC}"
+    echo -e "${GREEN}k9s${NC}"
     echo "  Terminal UI for managing Kubernetes clusters"
     echo "  Usage: k9s"
     echo ""
 
-    echo "${GREEN}envchain${NC}"
+    echo -e "${GREEN}envchain${NC}"
     echo "  Secure environment variable management using system keychain"
     echo "  Usage: envchain <namespace> <command>"
     if [[ "$OS" == "ubuntu" ]]; then
@@ -387,24 +387,24 @@ main() {
     fi
     echo ""
 
-    echo "${GREEN}lsof${NC}"
+    echo -e "${GREEN}lsof${NC}"
     echo "  List open files and network connections"
     echo "  Usage: lsof -i :8080 (check port), lsof -u username (by user)"
     echo ""
 
-    echo "${GREEN}nmap${NC}"
+    echo -e "${GREEN}nmap${NC}"
     echo "  Network exploration and security auditing tool"
     echo "  Usage: nmap <target>, nmap -p 1-1000 <target> (port scan)"
     echo ""
 
     if [[ "$OS" == "ubuntu" ]]; then
-        echo "${GREEN}wslu${NC}"
+        echo -e "${GREEN}wslu${NC}"
         echo "  Utilities for WSL (Windows Subsystem for Linux)"
         echo "  Enables browser launching from WSL terminal"
         echo "  Usage: wslview <url> (open URL in Windows browser)"
         echo ""
 
-        echo "${GREEN}gnome-keyring${NC}"
+        echo -e "${GREEN}gnome-keyring${NC}"
         echo "  Secure credential and secret storage for Linux"
         echo "  Configured for git, granted/assume, and envchain"
         echo "  Auto-starts with your shell session"
