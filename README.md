@@ -552,13 +552,32 @@ Check if the daemon is running:
 ```bash
 echo $GNOME_KEYRING_CONTROL
 ps aux | grep gnome-keyring
+dbus-send --session --print-reply --dest=org.freedesktop.DBus / org.freedesktop.DBus.ListNames | grep -i secret
 ```
 
-Manually start the daemon:
+Manually start the daemon (with proper D-Bus support):
 ```bash
-eval $(gnome-keyring-daemon --start --components=secrets,ssh)
+# Ensure D-Bus session is available
+if [ -z "$DBUS_SESSION_BUS_ADDRESS" ]; then
+    eval $(dbus-launch --sh-syntax)
+fi
+
+# Start gnome-keyring with all components
+eval $(gnome-keyring-daemon --start --components=secrets,pkcs11,ssh 2>/dev/null)
 export GNOME_KEYRING_CONTROL
 export SSH_AUTH_SOCK
+export GNOME_KEYRING_PID
+```
+
+If you get "Timeout was reached" errors with envchain or assume:
+```bash
+# Install dbus-x11 if missing
+sudo apt install -y dbus-x11
+
+# Restart keyring daemon
+pkill -f gnome-keyring-daemon
+eval $(dbus-launch --sh-syntax)
+eval $(gnome-keyring-daemon --start --components=secrets,pkcs11,ssh 2>/dev/null)
 ```
 
 ### git-credential-libsecret build fails

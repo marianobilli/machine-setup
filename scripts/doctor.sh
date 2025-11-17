@@ -193,6 +193,16 @@ check_ubuntu_tools() {
     # Check WSL utilities
     check_tool "wslu (wslview)" "wslview" "--help" "optional"
 
+    # Check dbus-x11 (required for dbus-launch)
+    TOTAL_CHECKS=$((TOTAL_CHECKS + 1))
+    if dpkg -l | grep -q dbus-x11; then
+        log_success "dbus-x11 is installed"
+        PASSED_CHECKS=$((PASSED_CHECKS + 1))
+    else
+        log_warning "dbus-x11 is NOT installed (required for gnome-keyring)"
+        WARNINGS=$((WARNINGS + 1))
+    fi
+
     # Check gnome-keyring
     TOTAL_CHECKS=$((TOTAL_CHECKS + 1))
     if dpkg -l | grep -q gnome-keyring; then
@@ -204,6 +214,16 @@ check_ubuntu_tools() {
         if [ -n "$GNOME_KEYRING_CONTROL" ]; then
             log_success "gnome-keyring daemon is running"
             PASSED_CHECKS=$((PASSED_CHECKS + 1))
+
+            # Check if secrets service is registered on D-Bus
+            TOTAL_CHECKS=$((TOTAL_CHECKS + 1))
+            if dbus-send --session --print-reply --dest=org.freedesktop.DBus / org.freedesktop.DBus.ListNames 2>/dev/null | grep -q "org.freedesktop.secrets"; then
+                log_success "gnome-keyring secrets service is registered on D-Bus"
+                PASSED_CHECKS=$((PASSED_CHECKS + 1))
+            else
+                log_warning "gnome-keyring secrets service is NOT registered on D-Bus (envchain/assume may fail)"
+                WARNINGS=$((WARNINGS + 1))
+            fi
         else
             log_warning "gnome-keyring daemon is NOT running"
             WARNINGS=$((WARNINGS + 1))

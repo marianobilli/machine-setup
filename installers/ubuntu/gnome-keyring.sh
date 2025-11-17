@@ -15,10 +15,15 @@ install_gnome_keyring() {
     # Check if gnome-keyring is already installed
     if dpkg -l | grep -q gnome-keyring; then
         log_info "gnome-keyring is already installed"
+        # Ensure dbus-x11 is installed (needed for dbus-launch)
+        if ! dpkg -l | grep -q dbus-x11; then
+            log_info "Installing dbus-x11 (required for dbus-launch)..."
+            sudo apt install -y dbus-x11
+        fi
     else
         log_info "Installing gnome-keyring..."
         sudo apt update
-        sudo apt install -y gnome-keyring libsecret-1-0 libsecret-1-dev
+        sudo apt install -y gnome-keyring libsecret-1-0 libsecret-1-dev dbus-x11
         log_info "gnome-keyring installed successfully"
     fi
 
@@ -28,12 +33,20 @@ install_gnome_keyring() {
             log_info "Configuring gnome-keyring daemon to start automatically..."
             cat >> ~/.zshrc << 'GNOME_EOF'
 
-# Start gnome-keyring daemon if not already running
-if [ -z "$GNOME_KEYRING_CONTROL" ]; then
-    eval $(gnome-keyring-daemon --start --components=secrets,ssh 2>/dev/null)
-    export GNOME_KEYRING_CONTROL
-    export SSH_AUTH_SOCK
+# === GNOME Keyring Daemon - START ===
+# Start GNOME Keyring if not running (required for credential storage like envchain/assume)
+if [ -z "$DBUS_SESSION_BUS_ADDRESS" ]; then
+    eval $(dbus-launch --sh-syntax)
 fi
+if [ -z "$GNOME_KEYRING_CONTROL" ]; then
+    # Start gnome-keyring-daemon with secrets, ssh, and pkcs11 components
+    eval $(gnome-keyring-daemon --start --components=secrets,pkcs11,ssh 2>/dev/null)
+    # Ensure environment variables are exported
+    export SSH_AUTH_SOCK
+    export GNOME_KEYRING_CONTROL
+    export GNOME_KEYRING_PID
+fi
+# === GNOME Keyring Daemon - END ===
 GNOME_EOF
             log_info "gnome-keyring daemon configuration added to ~/.zshrc"
         else
