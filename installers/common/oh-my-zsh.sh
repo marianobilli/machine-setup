@@ -11,6 +11,29 @@ SCRIPT_DIR="$(cd "$INSTALLER_DIR/../.." && pwd)"
 # shellcheck source=lib/common.sh
 source "${SCRIPT_DIR}/lib/common.sh"
 
+ensure_powerlevel10k_theme() {
+    local zshrc="$HOME/.zshrc"
+
+    if [ ! -f "$zshrc" ]; then
+        log_warning "No ~/.zshrc found to configure Powerlevel10k"
+        return 1
+    fi
+
+    if grep -q '^ZSH_THEME="powerlevel10k/powerlevel10k"' "$zshrc"; then
+        return 0
+    fi
+
+    if grep -q '^ZSH_THEME=' "$zshrc"; then
+        log_info "Switching ZSH_THEME to Powerlevel10k in ~/.zshrc"
+        sed -i.tmp 's|^ZSH_THEME=.*|ZSH_THEME="powerlevel10k/powerlevel10k"|' "$zshrc"
+        rm -f "${zshrc}.tmp"
+        return 0
+    fi
+
+    echo 'ZSH_THEME="powerlevel10k/powerlevel10k"' >> "$zshrc"
+    log_info "Set Powerlevel10k as the default ZSH_THEME"
+}
+
 install_oh_my_zsh() {
     # Check if Oh My Zsh is already installed
     if [ -d ~/.oh-my-zsh ]; then
@@ -31,16 +54,10 @@ install_oh_my_zsh() {
         log_info "Installing Powerlevel10k theme..."
         git clone --depth=1 https://github.com/romkatv/powerlevel10k.git ~/.oh-my-zsh/custom/themes/powerlevel10k
         log_info "Powerlevel10k theme installed successfully"
+    fi
 
-        # Only set theme if this is a fresh installation and no theme is set
-        if [ -f ~/.zshrc ]; then
-            if ! grep -q "^ZSH_THEME=" ~/.zshrc; then
-                echo 'ZSH_THEME="powerlevel10k/powerlevel10k"' >> ~/.zshrc
-                log_info "Set Powerlevel10k as default theme"
-            else
-                log_info "Existing theme detected - not changing it. To use Powerlevel10k, set: ZSH_THEME=\"powerlevel10k/powerlevel10k\""
-            fi
-        fi
+    if [ -d ~/.oh-my-zsh/custom/themes/powerlevel10k ] && [ -f ~/.zshrc ]; then
+        ensure_powerlevel10k_theme
     fi
 
     # Install zsh-autosuggestions plugin
@@ -68,7 +85,7 @@ install_oh_my_zsh() {
     fi
 
     # Ensure required plugins are present (without removing user's existing plugins)
-    REQUIRED_PLUGINS=("git" "docker" "kubectl" "aws" "kubernetes" "zsh-autosuggestions" "zsh-syntax-highlighting" "npm" "python" "command-not-found" "colored-man-pages" "z" "history-substring-search" "sudo" "extract")
+    REQUIRED_PLUGINS=("git" "docker" "kubectl" "aws" "zsh-autosuggestions" "zsh-syntax-highlighting" "npm" "python" "command-not-found" "colored-man-pages" "z" "history-substring-search" "sudo" "extract")
 
     if [ -f ~/.zshrc ]; then
         if grep -q "^plugins=" ~/.zshrc; then
@@ -107,12 +124,22 @@ install_oh_my_zsh() {
     fi
 
     log_info "Oh My Zsh setup complete"
-    if [ -d ~/.oh-my-zsh/custom/themes/powerlevel10k ]; then
-        log_warning "Powerlevel10k is available. Run 'p10k configure' to customize (if not already done)"
+
+    # Trigger p10k configure if this is a new installation and not configured yet
+    if [ -d ~/.oh-my-zsh/custom/themes/powerlevel10k ] && [ ! -f ~/.p10k.zsh ]; then
+        log_info "Powerlevel10k is installed but not configured yet."
+        log_info "Starting Powerlevel10k configuration wizard..."
+        # Run p10k configure in the current shell
+        # This will guide the user through the setup
+        if command -v zsh >/dev/null 2>&1; then
+            zsh -i -c 'source ~/.zshrc 2>/dev/null; p10k configure'
+        else
+            log_warning "zsh not found. Please run 'p10k configure' manually after switching to zsh"
+        fi
+    elif [ -d ~/.oh-my-zsh/custom/themes/powerlevel10k ] && [ -f ~/.p10k.zsh ]; then
+        log_info "Powerlevel10k is already configured (~/.p10k.zsh exists)"
     fi
 }
 
-# Run installation if script is executed directly
-if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
-    install_oh_my_zsh
-fi
+# Run installation when sourced or executed directly
+install_oh_my_zsh
